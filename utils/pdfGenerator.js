@@ -3,26 +3,32 @@ import PDFDocument from "pdfkit";
 class PDFGenerator {
   
   // 📌 Generar carnet PDF para egresado
-  async generateCarnet(egresadoData, res) {
+  async generateCarnet(egresadoData, res, qrBuffer = null) {
     const doc = new PDFDocument({
-      size: [300, 450],
-      margins: { top: 20, bottom: 20, left: 20, right: 20 }
+      size: [300, 480], // Aumentar un poco la altura para acomodar el QR
+      margins: { top: 15, bottom: 15, left: 20, right: 20 }
     });
 
     // Configurar headers de respuesta
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=carnet-${egresadoData.cedula}.pdf`
+      `attachment; filename=carnet-${egresadoData.cedula}-${Date.now()}.pdf`
     );
 
     doc.pipe(res);
 
-    // 🎨 DISEÑO DEL CARNET
+    // 🎨 DISEÑO DEL CARNET - REORGANIZADO PARA UNA SOLA PÁGINA
     this._drawHeader(doc);
     this._drawAvatar(doc);
     this._drawEgresadoLabel(doc);
-    this._drawPersonalInfo(doc, egresadoData);
+    
+    // Dibujar QR centrado debajo del avatar si se proporciona
+    if (qrBuffer) {
+      this._drawQRCode(doc, qrBuffer, egresadoData);
+    }
+    
+    this._drawPersonalInfo(doc, egresadoData, qrBuffer ? true : false);
 
     doc.end();
   }
@@ -68,8 +74,9 @@ class PDFGenerator {
   }
 
   // 📌 Dibujar información personal del egresado
-  _drawPersonalInfo(doc, egresadoData) {
-    let yPos = 250;
+  _drawPersonalInfo(doc, egresadoData, hasQR = false) {
+    // Ajustar posición inicial según si hay QR o no
+    let yPos = hasQR ? 290 : 250; // Si hay QR, comenzar más abajo
 
     // Nombres y Apellidos en verde
     doc.fillColor("#39A900")
@@ -80,7 +87,7 @@ class PDFGenerator {
         align: "center"
       });
 
-    yPos += 25;
+    yPos += 18; // Reducir espacio
 
     // Número de documento
     doc.fillColor("#000000")
@@ -91,7 +98,7 @@ class PDFGenerator {
         align: "center"
       });
 
-    yPos += 20;
+    yPos += 15; // Reducir espacio
 
     // Ficha
     doc.fontSize(10)
@@ -101,7 +108,7 @@ class PDFGenerator {
         align: "center"
       });
 
-    yPos += 20;
+    yPos += 15; // Reducir espacio
 
     // Programa de formación
     doc.fontSize(9)
@@ -111,7 +118,7 @@ class PDFGenerator {
         align: "center"
       });
 
-    yPos += 35;
+    yPos += 25; // Reducir espacio
 
     // Regional en verde
     doc.fillColor("#39A900")
@@ -122,17 +129,17 @@ class PDFGenerator {
         align: "center"
       });
 
-    yPos += 20;
+    yPos += 15; // Reducir espacio
 
     // Centro de formación en verde
-    doc.fontSize(9)
+    doc.fontSize(8) // Reducir tamaño de fuente
       .font("Helvetica-Bold")
       .text(egresadoData.centro || "Centro de Teleinformática y Producción Industrial", 20, yPos, {
         width: 260,
         align: "center"
       });
 
-    yPos += 25;
+    yPos += 20; // Reducir espacio
 
     // Fecha de certificación
     doc.fillColor("#000000")
@@ -142,6 +149,51 @@ class PDFGenerator {
         width: 260,
         align: "center"
       });
+  }
+
+  // 📌 Dibujar código QR centrado debajo del avatar
+  _drawQRCode(doc, qrBuffer, egresadoData) {
+    try {
+      // Posición centrada debajo del avatar
+      const qrSize = 60;
+      const pageWidth = 300;
+      const xPos = (pageWidth - qrSize) / 2; // Centrar horizontalmente
+      const yPos = 190; // Debajo del avatar (avatar está en ~150)
+
+      // Marco sutil alrededor del QR
+      doc.rect(xPos - 2, yPos - 2, qrSize + 4, qrSize + 4)
+         .strokeColor('#E5E5E5')
+         .lineWidth(1)
+         .stroke();
+
+      // Insertar imagen QR
+      doc.image(qrBuffer, xPos, yPos, {
+        width: qrSize,
+        height: qrSize
+      });
+
+      // Texto "Escanea para verificar" centrado debajo del QR
+      doc.fillColor("#666666")
+         .fontSize(8)
+         .font("Helvetica")
+         .text("Escanea para verificar", 20, yPos + qrSize + 8, {
+           width: 260,
+           align: "center"
+         });
+
+      // Fecha de vencimiento del carnet
+      if (egresadoData.carnetExpires) {
+        doc.fontSize(7)
+           .text(`Válido hasta: ${egresadoData.carnetExpires}`, 20, yPos + qrSize + 22, {
+             width: 260,
+             align: "center"
+           });
+      }
+
+    } catch (error) {
+      console.error('❌ Error agregando QR al PDF:', error);
+      // Si falla el QR, continuar sin él
+    }
   }
 
   // 📌 Generar reporte PDF de estadísticas (útil para administradores)

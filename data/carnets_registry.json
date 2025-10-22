@@ -1,0 +1,17 @@
+[
+  {
+    "id": "07744783-8abc-4402-a5bd-3f5f2d704956",
+    "cedula": "1110288054",
+    "ficha": "2556678",
+    "nombreCompleto": "CRISTIAN SAMIR NARVAEZ QUINTERO",
+    "programa": "ANALISIS Y DESARROLLO DE SOFTWARE.",
+    "fechaGeneracion": "2025-10-22T06:52:43.906Z",
+    "fechaVencimiento": "2025-11-21T06:52:43.906Z",
+    "estado": "activo",
+    "metadata": {
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+      "ip": "::1",
+      "recaptchaScore": "N/A"
+    }
+  }
+]

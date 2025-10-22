@@ -26,8 +26,15 @@ app.use('/api', apiRoutes);
 
 // 📌 Rutas de compatibilidad (mantener las rutas originales)
 import egresadoController from "./controllers/egresadoController.js";
+import verificationRoutes from "./routes/verificationRoutes.js";
 
-app.post('/verify', egresadoController.verify);
+// Rutas de verificación públicas
+app.use('/verify', verificationRoutes);
+
+// Rutas de API de verificación (para QR)
+app.get('/api/carnet/verify/:qrData', egresadoController.validateCarnet);
+
+app.post('/verify-legacy', egresadoController.verify);
 app.post('/carnet', egresadoController.generateCarnetWithCaptcha); // Nueva ruta principal con reCAPTCHA
 app.get('/carnet/:cedula/:ficha', egresadoController.generateCarnet); // Compatibilidad sin reCAPTCHA
 

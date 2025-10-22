@@ -1,10 +1,14 @@
 import { Router } from "express";
 import egresadoRoutes from "./egresadoRoutes.js";
+import verificationRoutes from "./verificationRoutes.js";
 
 const router = Router();
 
 // 📌 Rutas de la API
 router.use('/egresados', egresadoRoutes);
+
+// 📌 Rutas de verificación (también disponibles fuera de /api)
+router.use('/carnet', verificationRoutes);
 
 // 📌 Ruta de health check
 router.get('/health', (req, res) => {

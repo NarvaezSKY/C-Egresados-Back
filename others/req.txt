@@ -1,0 +1,27 @@
+Linkear egresados con diligenciamiento de la encuesta
+
+Pasos:
+1. Actualizar datos APE
+2. Diligenciar encuesta de egresados
+3. Subir foto para carnet
+4 Captcha (opcional)
+5. Recordar que el usuario solo podrá generar un carnet cada x meses
+
+Generacion de carnet:
+
+QR de validez carnet (vigencia x meses)
+Se pueden generar x carnets al mes
+
+Diseño de la pagina:
+	Pasos (Links APE y encuesta)
+	Formulario
+	Aliados estratégicos
+
+-Pagina de validacion:
+
+Escanear QR
+Vigente: Si/No
+En caso de que si sea vigente: Vigente hasta xx/xx/xxxx
+
+
+

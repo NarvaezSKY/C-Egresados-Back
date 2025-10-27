@@ -46,14 +46,13 @@ class CarnetRegistry {
   }
 
   // 📌 Verificar si puede generar nuevo carnet
-  canGenerateCarnet(cedula, ficha) {
+  canGenerateCarnet(cedula) {
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
 
     // Buscar carnet activo en los últimos 30 días
     const activeCarnet = this.registry.find(carnet => 
       carnet.cedula === cedula &&
-      carnet.ficha === ficha &&
       carnet.estado === 'activo' &&
       new Date(carnet.fechaGeneracion) > thirtyDaysAgo
     );
@@ -74,14 +73,14 @@ class CarnetRegistry {
   }
 
   // 📌 Registrar nuevo carnet
-  registerCarnet(cedula, ficha, egresadoData = {}, metadata = {}) {
+  registerCarnet(cedula, egresadoData = {}, metadata = {}) {
     const now = new Date();
     const expirationDate = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
 
     const carnetRecord = {
       id: uuidv4(),
       cedula: cedula,
-      ficha: ficha,
+      ficha: egresadoData.ficha || '', // Mantener la ficha en el registro pero opcional
       nombreCompleto: egresadoData.nombre || '',
       programa: egresadoData.programa || '',
       fechaGeneracion: now.toISOString(),
@@ -96,7 +95,7 @@ class CarnetRegistry {
 
     // Marcar carnets anteriores como reemplazados
     this.registry.forEach(carnet => {
-      if (carnet.cedula === cedula && carnet.ficha === ficha && carnet.estado === 'activo') {
+      if (carnet.cedula === cedula && carnet.estado === 'activo') {
         carnet.estado = 'reemplazado';
         carnet.fechaReemplazo = now.toISOString();
       }
@@ -169,8 +168,8 @@ class CarnetRegistry {
   }
 
   // 📌 Obtener historial de carnets de un usuario
-  getUserCarnets(cedula, ficha) {
-    return this.registry.filter(c => c.cedula === cedula && c.ficha === ficha)
+  getUserCarnets(cedula) {
+    return this.registry.filter(c => c.cedula === cedula)
                       .sort((a, b) => new Date(b.fechaGeneracion) - new Date(a.fechaGeneracion));
   }
 

@@ -1,0 +1,31 @@
+{
+  "watch": [
+    "app.js",
+    "config/*.js",
+    "controllers/*.js",
+    "db/*.js",
+    "routes/*.js",
+    "services/*.js",
+    "utils/*.js"
+  ],
+  "ignore": [
+    "data/**/*",
+    "*.xlsx",
+    "node_modules/**/*",
+    "*.log",
+    "*.pdf",
+    ".env*",
+    "README.md",
+    "*.md",
+    "carnets_registry.json"
+  ],
+  "ext": "js",
+  "env": {
+    "NODE_ENV": "development"
+  },
+  "delay": 2000,
+  "verbose": false,
+  "restartable": "rs",
+  "colours": true,
+  "legacyWatch": false
+}

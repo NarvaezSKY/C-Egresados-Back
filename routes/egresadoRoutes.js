@@ -11,8 +11,8 @@ router.post('/verify', egresadoController.verify);
 // POST /api/egresados/carnet - Generar carnet PDF con reCAPTCHA (nueva ruta principal)
 router.post('/carnet', egresadoController.generateCarnetWithCaptcha);
 
-// GET /api/egresados/carnet/:cedula/:ficha - Generar carnet PDF (compatibilidad, sin reCAPTCHA)
-router.get('/carnet/:cedula/:ficha', egresadoController.generateCarnet);
+// GET /api/egresados/carnet/:cedula - Generar carnet PDF (compatibilidad, sin reCAPTCHA)
+router.get('/carnet/:cedula', egresadoController.generateCarnet);
 
 // 📌 Rutas administrativas
 
@@ -44,8 +44,8 @@ router.get('/survey/debug', egresadoController.debugSurveyCedulas);
 // GET /api/egresados/carnet/validate/:qrData - Validar carnet por QR
 router.get('/carnet/validate/:qrData', egresadoController.validateCarnet);
 
-// GET /api/egresados/carnet/status/:cedula/:ficha - Estado de carnet de usuario
-router.get('/carnet/status/:cedula/:ficha', egresadoController.checkCarnetStatus);
+// GET /api/egresados/carnet/status/:cedula - Estado de carnet de usuario
+router.get('/carnet/status/:cedula', egresadoController.checkCarnetStatus);
 
 // GET /api/egresados/carnet/stats - Estadísticas de carnets
 router.get('/carnet/stats', egresadoController.getCarnetStats);

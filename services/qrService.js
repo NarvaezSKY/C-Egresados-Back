@@ -27,7 +27,7 @@ class QRService {
     
     return {
       qrData: encodedData,
-      verificationUrl: `${this.baseUrl}/api/carnet/verify/${encodedData}`,
+      verificationUrl: `${this.baseUrl}/verify/${encodedData}`,
       payload: qrPayload
     };
   }
@@ -130,6 +130,22 @@ class QRService {
       size: 100,
       ...options
     });
+  }
+
+  // 📌 Generar QR con ruta API
+  generateAPIVerificationURL(carnetRecord) {
+    const qrPayload = this.generateQRData(carnetRecord);
+    return `${this.baseUrl}/api/carnet/verify/${qrPayload.qrData}`;
+  }
+
+  // 📌 Generar QR con ruta web amigable
+  generateFriendlyVerificationURL(carnetRecord) {
+    return `${this.baseUrl}/carnet/verificar/${carnetRecord.id}`;
+  }
+
+  // 📌 Generar QR con página de verificación completa
+  generateFullVerificationURL(carnetRecord) {
+    return `${this.baseUrl}/verificar-carnet?c=${carnetRecord.cedula}&id=${carnetRecord.id}`;
   }
 }
 

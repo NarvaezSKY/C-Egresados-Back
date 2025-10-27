@@ -9,6 +9,18 @@ class EgresadoService {
   findEgresado(searchCriteria) {
     const egresados = excelConnection.getAllEgresados();
     
+    // Si se está buscando solo por cédula, obtener el último registro
+    if (Object.keys(searchCriteria).length === 1 && searchCriteria.cedula) {
+      const egresadosConCedula = egresados.filter((egresado) => {
+        const mappedEgresado = excelConnection.mapFields(egresado);
+        return mappedEgresado.cedula == searchCriteria.cedula;
+      });
+      
+      // Retornar el último registro encontrado (más reciente)
+      return egresadosConCedula.length > 0 ? egresadosConCedula[egresadosConCedula.length - 1] : null;
+    }
+    
+    // Para otros criterios de búsqueda, mantener el comportamiento original
     return egresados.find((egresado) => {
       const mappedEgresado = excelConnection.mapFields(egresado);
       return Object.entries(searchCriteria).every(([key, value]) => {
@@ -18,12 +30,12 @@ class EgresadoService {
   }
 
   // 📌 Verificar credenciales de egresado
-  async verifyEgresado(cedula, ficha) {
-    if (!cedula || !ficha) {
-      throw new Error("Faltan campos requeridos: cedula y ficha");
+  async verifyEgresado(cedula) {
+    if (!cedula) {
+      throw new Error("Faltan campos requeridos: cedula");
     }
 
-    const egresado = this.findEgresado({ cedula, ficha });
+    const egresado = this.findEgresado({ cedula });
 
     if (!egresado) {
       return {
@@ -42,9 +54,9 @@ class EgresadoService {
   }
 
   // 📌 Obtener datos de egresado para carnet
-  async getEgresadoForCarnet(cedula, ficha, metadata = {}) {
+  async getEgresadoForCarnet(cedula, metadata = {}) {
     // 1. Verificar si el egresado existe
-    const egresado = this.findEgresado({ cedula, ficha });
+    const egresado = this.findEgresado({ cedula });
 
     if (!egresado) {
       throw new Error("Egresado no encontrado");
@@ -58,7 +70,7 @@ class EgresadoService {
     }
 
     // 3. Verificar si puede generar un nuevo carnet (límite de 30 días)
-    const canGenerate = carnetRegistry.canGenerateCarnet(cedula, ficha);
+    const canGenerate = carnetRegistry.canGenerateCarnet(cedula);
     
     if (!canGenerate.canGenerate) {
       throw new Error(`No puedes generar un nuevo carnet. ${canGenerate.message}. Podrás generar uno nuevo el ${canGenerate.nextAvailableDate}`);
@@ -70,7 +82,7 @@ class EgresadoService {
     mappedEgresado.fechaEgreso = excelConnection.formatDate(mappedEgresado.fechaEgreso);
     
     // 4. Registrar el nuevo carnet
-    const carnetRecord = carnetRegistry.registerCarnet(cedula, ficha, mappedEgresado, metadata);
+    const carnetRecord = carnetRegistry.registerCarnet(cedula, mappedEgresado, metadata);
     
     // 5. Generar datos del QR
     const qrData = qrService.generateQRData(carnetRecord);
@@ -150,9 +162,9 @@ class EgresadoService {
   }
 
   // 📌 Verificar estado de carnet por cédula
-  async checkCarnetStatus(cedula, ficha) {
-    const canGenerate = carnetRegistry.canGenerateCarnet(cedula, ficha);
-    const userCarnets = carnetRegistry.getUserCarnets(cedula, ficha);
+  async checkCarnetStatus(cedula) {
+    const canGenerate = carnetRegistry.canGenerateCarnet(cedula);
+    const userCarnets = carnetRegistry.getUserCarnets(cedula);
 
     return {
       canGenerateNew: canGenerate.canGenerate,

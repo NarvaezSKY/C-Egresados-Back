@@ -36,7 +36,7 @@ app.get('/api/carnet/verify/:qrData', egresadoController.validateCarnet);
 
 app.post('/verify-legacy', egresadoController.verify);
 app.post('/carnet', egresadoController.generateCarnetWithCaptcha); // Nueva ruta principal con reCAPTCHA
-app.get('/carnet/:cedula/:ficha', egresadoController.generateCarnet); // Compatibilidad sin reCAPTCHA
+app.get('/carnet/:cedula', egresadoController.generateCarnet); // Compatibilidad sin reCAPTCHA
 
 // 📌 Ruta raíz
 app.get('/', (req, res) => {
@@ -46,11 +46,11 @@ app.get('/', (req, res) => {
     status: 'Refactorizado con arquitectura modular',
     endpoints: {
       // Rutas principales (con reCAPTCHA)
-      verify: 'POST /verify o POST /api/egresados/verify',
-      carnetSecure: 'POST /carnet o POST /api/egresados/carnet (con reCAPTCHA)',
+      verify: 'POST /verify o POST /api/egresados/verify (solo cedula)',
+      carnetSecure: 'POST /carnet o POST /api/egresados/carnet (con reCAPTCHA, solo cedula)',
       
       // Rutas de compatibilidad
-      carnetLegacy: 'GET /carnet/:cedula/:ficha o GET /api/egresados/carnet/:cedula/:ficha (sin reCAPTCHA)',
+      carnetLegacy: 'GET /carnet/:cedula o GET /api/egresados/carnet/:cedula (sin reCAPTCHA)',
       
       // Nuevas rutas administrativas
       stats: 'GET /api/egresados/stats',
@@ -78,8 +78,9 @@ app.use((req, res) => {
     message: 'Ruta no encontrada',
     requestedPath: req.originalUrl,
     availableRoutes: [
-      'POST /verify',
-      'GET /carnet/:cedula/:ficha',
+      'POST /verify (solo cedula)',
+      'POST /carnet (cedula + reCAPTCHA)',
+      'GET /carnet/:cedula',
       'GET /api/egresados/stats',
       'GET /api/health'
     ]

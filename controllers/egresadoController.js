@@ -8,9 +8,9 @@ class EgresadoController {
   // 📌 Verificar egresado
   async verify(req, res) {
     try {
-      const { cedula, ficha } = req.body;
+      const { cedula } = req.body;
 
-      const result = await egresadoService.verifyEgresado(cedula, ficha);
+      const result = await egresadoService.verifyEgresado(cedula);
 
       if (!result.found) {
         return res.status(404).json({ 
@@ -29,7 +29,7 @@ class EgresadoController {
       if (error.message.includes("Faltan campos")) {
         return res.status(400).json({
           message: error.message,
-          required: ["cedula", "ficha"]
+          required: ["cedula"]
         });
       }
 
@@ -43,9 +43,9 @@ class EgresadoController {
   // 📌 Generar carnet PDF (GET - sin reCAPTCHA, para compatibilidad)
   async generateCarnet(req, res) {
     try {
-      const { cedula, ficha } = req.params;
+      const { cedula } = req.params;
 
-      const egresadoData = await egresadoService.getEgresadoForCarnet(cedula, ficha);
+      const egresadoData = await egresadoService.getEgresadoForCarnet(cedula);
       
       await pdfGenerator.generateCarnet(egresadoData, res);
 
@@ -68,13 +68,13 @@ class EgresadoController {
   // 📌 Generar carnet PDF con reCAPTCHA (POST - nueva ruta principal)
   async generateCarnetWithCaptcha(req, res) {
     try {
-      const { cedula, ficha, recaptchaToken } = req.body;
+      const { cedula, recaptchaToken } = req.body;
 
       // Verificar campos requeridos
-      if (!cedula || !ficha || !recaptchaToken) {
+      if (!cedula || !recaptchaToken) {
         return res.status(400).json({
           message: "Faltan campos requeridos",
-          required: ["cedula", "ficha", "recaptchaToken"]
+          required: ["cedula", "recaptchaToken"]
         });
       }
 
@@ -96,7 +96,7 @@ class EgresadoController {
         recaptchaScore: recaptchaResult.score || 'N/A'
       };
 
-      const egresadoData = await egresadoService.getEgresadoForCarnet(cedula, ficha, metadata);
+      const egresadoData = await egresadoService.getEgresadoForCarnet(cedula, metadata);
       
       // Generar código QR
       let qrBuffer = null;
@@ -274,9 +274,9 @@ class EgresadoController {
   // 📌 Verificar estado de carnet de un usuario
   async checkCarnetStatus(req, res) {
     try {
-      const { cedula, ficha } = req.params;
+      const { cedula } = req.params;
       
-      const status = await egresadoService.checkCarnetStatus(cedula, ficha);
+      const status = await egresadoService.checkCarnetStatus(cedula);
       
       res.json(status);
 

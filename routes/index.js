@@ -11,12 +11,50 @@ router.use('/egresados', egresadoRoutes);
 router.use('/carnet', verificationRoutes);
 
 // 📌 Ruta de health check
-router.get('/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Servidor funcionando correctamente',
-    timestamp: new Date().toISOString()
-  });
+router.get('/health', async (req, res) => {
+  try {
+    // Importar solo cuando se necesite para evitar dependencias circulares
+    const mongoConnection = (await import('../db/mongoConnection.js')).default;
+    const Egresado = (await import('../models/Egresado.js')).default;
+    
+    const mongoStatus = mongoConnection.getConnectionStatus();
+    let dbStats = null;
+    
+    if (mongoStatus.isConnected) {
+      try {
+        const totalEgresados = await Egresado.countDocuments({ estado: 'activo' });
+        dbStats = {
+          totalEgresados,
+          connected: true
+        };
+      } catch (error) {
+        dbStats = {
+          error: 'Error consultando base de datos',
+          connected: false
+        };
+      }
+    }
+    
+    res.json({ 
+      status: 'OK', 
+      message: 'Servidor funcionando correctamente',
+      timestamp: new Date().toISOString(),
+      database: {
+        type: 'MongoDB Atlas',
+        connected: mongoStatus.isConnected,
+        name: mongoStatus.dbName || 'EGRESADOS',
+        stats: dbStats
+      },
+      mode: 'MongoDB exclusivamente (sin Excel)'
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'ERROR',
+      message: 'Error verificando estado del servidor',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // 📌 Ruta raíz de la API

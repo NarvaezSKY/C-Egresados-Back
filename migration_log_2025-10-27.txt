@@ -1,0 +1,33 @@
+
+==========================================================
+            📊 REPORTE DE MIGRACIÓN COMPLETA
+==========================================================
+
+⏰ Fecha: 27/10/2025, 3:04:49 p. m.
+
+📈 ESTADÍSTICAS DE MIGRACIÓN:
+  ✅ Registros exitosos: 108266
+  🔄 Duplicados encontrados: 0
+  ❌ Errores: 695
+  📊 Total en BD: 108765
+
+💾 INFORMACIÓN DE BASE DE DATOS:
+  🗄️  Base de datos: EGRESADOS
+  📁 Colecciones: 1
+  📄 Documentos: 108765
+  💽 Tamaño de datos: 39.31 MB
+  🗂️  Índices: 9
+
+🎓 TOP 10 PROGRAMAS:
+  1. SISTEMAS: 12024 egresados
+  2. SISTEMAS.: 5432 egresados
+  3. SISTEMAS AGROPECUARIOS ECOLOGICOS.: 4225 egresados
+  4. ASISTENCIA ADMINISTRATIVA: 3721 egresados
+  5. CONTABILIZACIÓN DE OPERACIONES COMERCIALES Y FINANCIERAS: 2406 egresados
+  6. PRODUCCION DE CAFE: 2048 egresados
+  7. GESTIÓN EMPRESARIAL: 2006 egresados
+  8. AGROINDUSTRIA ALIMENTARIA: 1984 egresados
+  9. ASISTENCIA EN ORGANIZACIÓN DE ARCHIVOS: 1896 egresados
+  10. ANALISIS Y DESARROLLO DE SISTEMAS DE INFORMACION: 1574 egresados
+
+==========================================================

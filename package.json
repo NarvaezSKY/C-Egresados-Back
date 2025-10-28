@@ -7,7 +7,13 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon app.js",
-    "start": "node app.js"
+    "start": "node app.js",
+    "migrate": "node scripts/migrate.js",
+    "migrate:full": "node scripts/migrateToMongo.js",
+    "migrate:test": "node -e \"import('./scripts/migrateToMongo.js').then(m => console.log('Migration script loaded successfully'))\"",
+    "db:status": "node -e \"import('./db/mongoConnection.js').then(m => { const status = m.default.getConnectionStatus(); console.log(JSON.stringify(status, null, 2)); })\"",
+    "db:connect": "node -e \"import('./db/mongoConnection.js').then(m => m.default.connect().then(() => console.log('✅ MongoDB connected successfully')).catch(e => console.error('❌ Error:', e.message)))\"",
+    "db:info": "node -e \"import('./db/mongoConnection.js').then(async m => { await m.default.connect(); const info = await m.default.getDatabaseInfo(); console.log(JSON.stringify(info, null, 2)); })\""
   },
   "author": "",
   "license": "ISC",
@@ -17,6 +23,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "mongoose": "^8.19.2",
     "morgan": "^1.10.1",
     "nodemon": "^3.1.10",
     "pdfkit": "^0.17.2",

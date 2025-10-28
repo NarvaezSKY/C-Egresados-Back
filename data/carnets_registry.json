@@ -7,11 +7,70 @@
     "programa": "ANALISIS Y DESARROLLO DE SOFTWARE.",
     "fechaGeneracion": "2025-10-23T14:11:21.333Z",
     "fechaVencimiento": "2025-11-22T14:11:21.333Z",
-    "estado": "activo",
+    "estado": "reemplazado",
     "metadata": {
       "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
       "ip": "::1",
       "recaptchaScore": "N/A"
+    },
+    "fechaReemplazo": "2025-10-27T20:23:40.633Z"
+  },
+  {
+    "id": "c6f6a1ab-e447-40f8-b61d-a429363c2132",
+    "cedula": "1110288054",
+    "ficha": "",
+    "nombreCompleto": "",
+    "programa": "",
+    "fechaGeneracion": "2025-10-27T20:23:40.633Z",
+    "fechaVencimiento": "2025-11-26T20:23:40.633Z",
+    "estado": "reemplazado",
+    "metadata": {
+      "userAgent": "",
+      "ip": ""
+    },
+    "fechaReemplazo": "2025-10-28T04:51:45.276Z"
+  },
+  {
+    "id": "6070ead1-a0d3-4de7-a4b6-3ce56b893979",
+    "cedula": "1110288054",
+    "ficha": "",
+    "nombreCompleto": "",
+    "programa": "",
+    "fechaGeneracion": "2025-10-28T04:51:45.276Z",
+    "fechaVencimiento": "2025-11-27T04:51:45.276Z",
+    "estado": "reemplazado",
+    "metadata": {
+      "userAgent": "",
+      "ip": ""
+    },
+    "fechaReemplazo": "2025-10-28T04:54:11.232Z"
+  },
+  {
+    "id": "ad83b3b4-ce32-4a4f-aa65-8f913e1aa464",
+    "cedula": "1110288054",
+    "ficha": "",
+    "nombreCompleto": "",
+    "programa": "",
+    "fechaGeneracion": "2025-10-28T04:54:11.232Z",
+    "fechaVencimiento": "2025-11-27T04:54:11.232Z",
+    "estado": "activo",
+    "metadata": {
+      "userAgent": "",
+      "ip": ""
+    }
+  },
+  {
+    "id": "66736c1a-3784-4080-b58f-afd778d9a266",
+    "cedula": "1144138558",
+    "ficha": "",
+    "nombreCompleto": "",
+    "programa": "",
+    "fechaGeneracion": "2025-10-28T04:54:34.211Z",
+    "fechaVencimiento": "2025-11-27T04:54:34.211Z",
+    "estado": "activo",
+    "metadata": {
+      "userAgent": "",
+      "ip": ""
     }
   }
 ]

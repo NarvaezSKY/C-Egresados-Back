@@ -1,4 +1,4 @@
-import egresadoService from "../services/egresadoService.js";
+import egresadoServiceMongo from "../services/egresadoServiceMongo.js";
 import pdfGenerator from "../utils/pdfGenerator.js";
 import recaptchaService from "../services/recaptchaService.js";
 import qrService from "../services/qrService.js";
@@ -10,7 +10,7 @@ class EgresadoController {
     try {
       const { cedula } = req.body;
 
-      const result = await egresadoService.verifyEgresado(cedula);
+      const result = await egresadoServiceMongo.verifyEgresado(cedula);
 
       if (!result.found) {
         return res.status(404).json({ 
@@ -45,7 +45,7 @@ class EgresadoController {
     try {
       const { cedula } = req.params;
 
-      const egresadoData = await egresadoService.getEgresadoForCarnet(cedula);
+      const egresadoData = await egresadoServiceMongo.getEgresadoForCarnet(cedula);
       
       await pdfGenerator.generateCarnet(egresadoData, res);
 
@@ -96,7 +96,7 @@ class EgresadoController {
         recaptchaScore: recaptchaResult.score || 'N/A'
       };
 
-      const egresadoData = await egresadoService.getEgresadoForCarnet(cedula, metadata);
+      const egresadoData = await egresadoServiceMongo.getEgresadoForCarnet(cedula, metadata);
       
       // Generar código QR
       let qrBuffer = null;
@@ -131,7 +131,7 @@ class EgresadoController {
   // 📌 Obtener todos los egresados (endpoint administrativo)
   async getAll(req, res) {
     try {
-      const egresados = await egresadoService.getAllEgresados();
+      const egresados = await egresadoServiceMongo.getAllEgresados();
       
       res.json({
         message: "Egresados obtenidos exitosamente",
@@ -151,7 +151,7 @@ class EgresadoController {
   // 📌 Obtener estadísticas
   async getStats(req, res) {
     try {
-      const stats = await egresadoService.getStats();
+      const stats = await egresadoServiceMongo.getStats();
       
       res.json({
         message: "Estadísticas obtenidas exitosamente",
@@ -170,7 +170,7 @@ class EgresadoController {
   // 📌 Generar reporte de estadísticas en PDF
   async generateStatsReport(req, res) {
     try {
-      const stats = await egresadoService.getStats();
+      const stats = await egresadoServiceMongo.getStats();
       
       await pdfGenerator.generateStatsReport(stats, res);
 
@@ -188,7 +188,7 @@ class EgresadoController {
     try {
       const { cedula } = req.params;
       
-      const result = await egresadoService.checkSurveyStatus(cedula);
+      const result = await egresadoServiceMongo.checkSurveyStatus(cedula);
       
       res.json(result);
 
@@ -204,7 +204,7 @@ class EgresadoController {
   // 📌 DEBUG: Ver cédulas de la encuesta
   async debugSurveyCedulas(req, res) {
     try {
-      const result = await egresadoService.debugSurveyCedulas();
+      const result = await egresadoServiceMongo.debugSurveyCedulas();
       
       res.json(result);
 
@@ -220,7 +220,7 @@ class EgresadoController {
   // 📌 Recargar datos del Excel
   async reloadData(req, res) {
     try {
-      const result = await egresadoService.reloadData();
+      const result = await egresadoServiceMongo.reloadData();
       
       res.json(result);
 
@@ -236,7 +236,7 @@ class EgresadoController {
   // 📌 Recargar datos de la encuesta
   async reloadSurveyData(req, res) {
     try {
-      const result = await egresadoService.reloadSurveyData();
+      const result = await egresadoServiceMongo.reloadSurveyData();
       
       res.json(result);
 
@@ -254,7 +254,7 @@ class EgresadoController {
     try {
       const { qrData } = req.params;
       
-      const validation = await egresadoService.validateCarnetByQR(qrData);
+      const validation = await egresadoServiceMongo.validateCarnetByQR(qrData);
       
       const statusCode = validation.valid ? 200 : 
                         validation.status === 'expired' ? 410 : 
@@ -276,7 +276,7 @@ class EgresadoController {
     try {
       const { cedula } = req.params;
       
-      const status = await egresadoService.checkCarnetStatus(cedula);
+      const status = await egresadoServiceMongo.checkCarnetStatus(cedula);
       
       res.json(status);
 
@@ -292,7 +292,7 @@ class EgresadoController {
   // 📌 Obtener estadísticas de carnets
   async getCarnetStats(req, res) {
     try {
-      const stats = await egresadoService.getCarnetStats();
+      const stats = await egresadoServiceMongo.getCarnetStats();
       
       res.json(stats);
 
@@ -312,7 +312,7 @@ class EgresadoController {
       
       let validation = null;
       if (id) {
-        validation = await egresadoService.validateCarnetByQR(id);
+        validation = await egresadoServiceMongo.validateCarnetByQR(id);
       }
 
       // HTML simple para verificación

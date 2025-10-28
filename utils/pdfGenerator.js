@@ -134,7 +134,7 @@ class PDFGenerator {
     // Centro de formación en verde
     doc.fontSize(8) // Reducir tamaño de fuente
       .font("Helvetica-Bold")
-      .text(egresadoData.centro || "Centro de Teleinformática y Producción Industrial", 20, yPos, {
+      .text(egresadoData.centro, 20, yPos, {
         width: 260,
         align: "center"
       });

@@ -10,6 +10,9 @@ dotenv.config();
 // Importar configuraciones
 import { CORS_OPTIONS, SERVER_CONFIG } from "./config/fieldMapping.js";
 
+// 📌 Importar conexión a MongoDB
+import mongoConnection from "./db/mongoConnection.js";
+
 // Importar rutas
 import apiRoutes from "./routes/index.js";
 
@@ -40,10 +43,17 @@ app.get('/carnet/:cedula', egresadoController.generateCarnet); // Compatibilidad
 
 // 📌 Ruta raíz
 app.get('/', (req, res) => {
+  const mongoStatus = mongoConnection.getConnectionStatus();
+  
   res.json({
     message: 'API de Egresados SENA - Servidor Backend',
     version: '2.0.0',
-    status: 'Refactorizado con arquitectura modular',
+    status: 'MongoDB exclusivamente (sin Excel)',
+    database: {
+      type: 'MongoDB Atlas',
+      connected: mongoStatus.isConnected,
+      name: mongoStatus.dbName || 'EGRESADOS'
+    },
     endpoints: {
       // Rutas principales (con reCAPTCHA)
       verify: 'POST /verify o POST /api/egresados/verify (solo cedula)',
@@ -87,15 +97,60 @@ app.use((req, res) => {
   });
 });
 
-// 📌 Inicializar servidor
-app.listen(SERVER_CONFIG.port, () => {
-  console.log('🚀 ================================');
-  console.log('📚 API de Egresados SENA');
-  console.log('🚀 ================================');
-  console.log(`✅ Servidor corriendo en http://${SERVER_CONFIG.host}:${SERVER_CONFIG.port}`);
-  console.log(`📖 Documentación: http://${SERVER_CONFIG.host}:${SERVER_CONFIG.port}`);
-  console.log(`🏥 Health check: http://${SERVER_CONFIG.host}:${SERVER_CONFIG.port}/api/health`);
-  console.log('🚀 ================================');
+// 📌 Función de inicialización con MongoDB
+async function initializeServer() {
+  try {
+    console.log('🚀 ================================');
+    console.log('📚 API de Egresados SENA');
+    console.log('🚀 ================================');
+    
+    // 🔗 Conectar a MongoDB Atlas
+    console.log('🔗 Conectando a MongoDB Atlas...');
+    await mongoConnection.connect();
+    
+    const status = mongoConnection.getConnectionStatus();
+    if (status.isConnected) {
+      console.log('✅ MongoDB Atlas conectado exitosamente');
+      console.log(`📊 Base de datos: ${status.dbName}`);
+      console.log('💾 Modo: Solo MongoDB (sin Excel)');
+    } else {
+      throw new Error('No se pudo conectar a MongoDB');
+    }
+    
+    // 🚀 Inicializar servidor HTTP
+    app.listen(SERVER_CONFIG.port, () => {
+      console.log(`✅ Servidor corriendo en http://${SERVER_CONFIG.host}:${SERVER_CONFIG.port}`);
+      console.log(`📖 Documentación: http://${SERVER_CONFIG.host}:${SERVER_CONFIG.port}`);
+      console.log(`🏥 Health check: http://${SERVER_CONFIG.host}:${SERVER_CONFIG.port}/api/health`);
+      console.log('🚀 ================================');
+    });
+    
+  } catch (error) {
+    console.error('❌ Error iniciando la aplicación:', error.message);
+    console.error('💡 Verifica que MongoDB Atlas esté disponible');
+    process.exit(1);
+  }
+}
+
+// 📌 Manejar cierre graceful
+process.on('SIGINT', async () => {
+  console.log('\n🔄 Cerrando aplicación...');
+  try {
+    await mongoConnection.disconnect();
+    console.log('🟡 MongoDB desconectado');
+  } catch (error) {
+    console.error('❌ Error desconectando MongoDB:', error.message);
+  }
+  console.log('👋 Aplicación cerrada');
+  process.exit(0);
 });
+
+process.on('SIGTERM', async () => {
+  await mongoConnection.disconnect();
+  process.exit(0);
+});
+
+// 🚀 Inicializar la aplicación
+initializeServer();
 
 export default app;

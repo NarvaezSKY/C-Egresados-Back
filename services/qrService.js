@@ -5,7 +5,7 @@ class QRService {
   constructor() {
     // Clave secreta para firmar QR (deberías ponerla en .env)
     this.secretKey = process.env.QR_SECRET_KEY || 'sena-carnet-secret-2024-cauca';
-    this.baseUrl = process.env.BASE_URL || 'http://localhost:4000';
+    this.baseUrl = process.env.BASE_URL || 'http://localhost:3000';
   }
 
   // 📌 Generar datos para el QR

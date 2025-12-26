@@ -16,8 +16,7 @@
     "*.pdf",
     ".env*",
     "README.md",
-    "*.md",
-    "carnets_registry.json"
+    "*.md"
   ],
   "ext": "js",
   "env": {

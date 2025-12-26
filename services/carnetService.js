@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 class CarnetService {
   constructor() {
-    this.validityDays = 30; // Carnets válidos por 30 días
+    // Carnets válidos hasta el 31 de diciembre del año en que se generan
   }
 
   // 📋 Verificar si puede generar nuevo carnet
@@ -46,55 +46,75 @@ class CarnetService {
       const canGenerate = await this.canGenerateCarnet(cedula);
       
       if (!canGenerate.canGenerate) {
-        throw new Error(`No se puede generar carnet: ${canGenerate.reason}. Válido hasta: ${canGenerate.existingCarnet.fechaVencimiento.toLocaleDateString()}`);
+        throw new Error(`No se puede generar carnet: ${canGenerate.reason}. Válido hasta: ${canGenerate.existingCarnet.fechaVencimiento.toLocaleDateString('es-ES')}`);
       }
 
-      // Solo marcar como expirados los carnets que YA están vencidos por fecha, no los válidos
+      // Buscar si existe algún carnet previo (válido o inválido)
+      const existingCarnet = await Carnet.findOne({ cedula: cedula }).sort({ fechaGeneracion: -1 });
+      
       const now = new Date();
-      await Carnet.updateMany(
-        { 
-          cedula: cedula,
-          estado: 'valido',
-          fechaVencimiento: { $lt: now } // Solo los que ya vencieron por fecha
-        },
-        { 
-          $set: { estado: 'expirado' }
-        }
-      );
+      // Establecer fecha de vencimiento al 31 de diciembre del año actual
+      const fechaVencimiento = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
 
-      // Crear nuevo carnet
-      const carnetId = uuidv4();
-      const fechaGeneracion = new Date();
-      const fechaVencimiento = new Date();
-      fechaVencimiento.setDate(fechaGeneracion.getDate() + this.validityDays);
-
-      const nuevoCarnet = new Carnet({
-        carnetId: carnetId,
-        cedula: cedula,
-        ficha: egresadoData.ficha || '',
-        nombreCompleto: egresadoData.nombre || '',
-        programa: egresadoData.programa || '',
-        fechaGeneracion: fechaGeneracion,
-        fechaVencimiento: fechaVencimiento,
-        estado: 'valido',
-        metadata: {
-          userAgent: metadata.userAgent || '',
-          ip: metadata.ip || '',
+      if (existingCarnet) {
+        // 🔄 REUTILIZAR carnet existente - actualizarlo en lugar de crear uno nuevo
+        existingCarnet.ficha = egresadoData.ficha || existingCarnet.ficha || '';
+        existingCarnet.nombreCompleto = egresadoData.nombre || existingCarnet.nombreCompleto || '';
+        existingCarnet.programa = egresadoData.programa || existingCarnet.programa || '';
+        existingCarnet.fechaGeneracion = now;
+        existingCarnet.fechaVencimiento = fechaVencimiento;
+        existingCarnet.estado = 'valido';
+        
+        // Actualizar metadata manteniendo campos previos si existen
+        existingCarnet.metadata = {
+          userAgent: metadata.userAgent || existingCarnet.metadata?.userAgent || '',
+          ip: metadata.ip || existingCarnet.metadata?.ip || '',
           recaptchaScore: metadata.recaptchaScore || 'N/A'
-        }
-      });
+        };
 
-      await nuevoCarnet.save();
+        await existingCarnet.save();
 
-      console.log(`📄 Carnet registrado en MongoDB - ID: ${carnetId.substring(0, 8)} para ${cedula}`);
+        console.log(`🔄 Carnet reactivado - ${cedula}`);
 
-      return {
-        id: carnetId,
-        cedula: cedula,
-        fechaGeneracion: fechaGeneracion,
-        fechaVencimiento: fechaVencimiento,
-        estado: 'valido'
-      };
+        return {
+          id: existingCarnet.carnetId,
+          cedula: cedula,
+          fechaGeneracion: now,
+          fechaVencimiento: fechaVencimiento,
+          estado: 'valido'
+        };
+      } else {
+        // ✨ CREAR nuevo carnet solo si no existe ninguno previo
+        const carnetId = uuidv4();
+
+        const nuevoCarnet = new Carnet({
+          carnetId: carnetId,
+          cedula: cedula,
+          ficha: egresadoData.ficha || '',
+          nombreCompleto: egresadoData.nombre || '',
+          programa: egresadoData.programa || '',
+          fechaGeneracion: now,
+          fechaVencimiento: fechaVencimiento,
+          estado: 'valido',
+          metadata: {
+            userAgent: metadata.userAgent || '',
+            ip: metadata.ip || '',
+            recaptchaScore: metadata.recaptchaScore || 'N/A'
+          }
+        });
+
+        await nuevoCarnet.save();
+
+        console.log(`✨ Carnet creado - ${cedula}`);
+
+        return {
+          id: carnetId,
+          cedula: cedula,
+          fechaGeneracion: now,
+          fechaVencimiento: fechaVencimiento,
+          estado: 'valido'
+        };
+      }
       
     } catch (error) {
       console.error('❌ Error registrando carnet:', error.message);
@@ -132,6 +152,7 @@ class CarnetService {
         carnet: {
           id: carnet.carnetId,
           cedula: carnet.cedula,
+          ficha: carnet.ficha,
           nombre: carnet.nombreCompleto,
           programa: carnet.programa,
           fechaGeneracion: carnet.fechaGeneracion,
@@ -211,7 +232,6 @@ class CarnetService {
   async cleanupExpiredCarnets() {
     try {
       const expiredCount = await Carnet.expireOldCarnets();
-      console.log(`🧹 Carnets marcados como expirados: ${expiredCount}`);
       return expiredCount;
     } catch (error) {
       console.error('❌ Error limpiando carnets expirados:', error.message);

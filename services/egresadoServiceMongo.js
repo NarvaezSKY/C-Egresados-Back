@@ -173,12 +173,12 @@ class MongoEgresadoService {
     // Registrar nuevo carnet en MongoDB
     const carnetRecord = await carnetService.registerCarnet(cedula, mappedEgresado, metadata);
     
-    // Generar QR con datos del carnet
+    // Generar QR con datos del carnet (incluye ficha para validación)
     const qrData = {
       id: carnetRecord.id,
       cedula: cedula,
-      fecha: carnetRecord.fechaGeneracion,
-      version: "2.0"
+      ficha: mappedEgresado.ficha,
+      fechaVencimiento: carnetRecord.fechaVencimiento
     };
 
     const encodedQR = qrService.generateQRData(qrData);

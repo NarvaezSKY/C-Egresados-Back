@@ -100,48 +100,27 @@ app.use((req, res) => {
 // 📌 Función de inicialización con MongoDB
 async function initializeServer() {
   try {
-    console.log('🚀 ================================');
-    console.log('📚 API de Egresados SENA');
-    console.log('🚀 ================================');
+    console.log('🚀 Iniciando API de Egresados SENA...');
     
     // 🔗 Conectar a MongoDB Atlas
-    console.log('🔗 Conectando a MongoDB Atlas...');
     await mongoConnection.connect();
-    
-    const status = mongoConnection.getConnectionStatus();
-    if (status.isConnected) {
-      console.log('✅ MongoDB Atlas conectado exitosamente');
-      console.log(`📊 Base de datos: ${status.dbName}`);
-      console.log('💾 Modo: Solo MongoDB (sin Excel)');
-    } else {
-      throw new Error('No se pudo conectar a MongoDB');
-    }
     
     // 🚀 Inicializar servidor HTTP
     app.listen(SERVER_CONFIG.port, () => {
-      console.log(`✅ Servidor corriendo en http://${SERVER_CONFIG.host}:${SERVER_CONFIG.port}`);
-      console.log(`📖 Documentación: http://${SERVER_CONFIG.host}:${SERVER_CONFIG.port}`);
-      console.log(`🏥 Health check: http://${SERVER_CONFIG.host}:${SERVER_CONFIG.port}/api/health`);
-      console.log('🚀 ================================');
+      console.log(`✅ Servidor activo en http://localhost:${SERVER_CONFIG.port}`);
+      console.log(`� MongoDB: Conectado`);
     });
     
   } catch (error) {
     console.error('❌ Error iniciando la aplicación:', error.message);
-    console.error('💡 Verifica que MongoDB Atlas esté disponible');
     process.exit(1);
   }
 }
 
 // 📌 Manejar cierre graceful
 process.on('SIGINT', async () => {
-  console.log('\n🔄 Cerrando aplicación...');
-  try {
-    await mongoConnection.disconnect();
-    console.log('🟡 MongoDB desconectado');
-  } catch (error) {
-    console.error('❌ Error desconectando MongoDB:', error.message);
-  }
-  console.log('👋 Aplicación cerrada');
+  console.log('\n🔄 Cerrando servidor...');
+  await mongoConnection.disconnect();
   process.exit(0);
 });
 

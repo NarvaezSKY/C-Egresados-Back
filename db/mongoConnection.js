@@ -21,8 +21,6 @@ class MongoConnection {
         throw new Error('MONGODB_URI no está definida en las variables de entorno');
       }
 
-      console.log(`📡 Conectando a MongoDB Atlas... (Intento ${this.connectionAttempts})`);
-
       const options = {
         useNewUrlParser: true,
         useUnifiedTopology: true,
@@ -38,14 +36,12 @@ class MongoConnection {
       await mongoose.connect(mongoUri, options);
       
       this.isConnected = true;
-      console.log('✅ Conectado exitosamente a MongoDB Atlas');
       
       return true;
     } catch (error) {
       console.error(`❌ Error conectando a MongoDB Atlas:`, error.message);
       
       if (this.connectionAttempts < this.maxRetries) {
-        console.log(`⏳ Reintentando en 5 segundos... (${this.connectionAttempts}/${this.maxRetries})`);
         await this.delay(5000);
         return this.connect();
       } else {
@@ -60,7 +56,6 @@ class MongoConnection {
       if (this.isConnected) {
         await mongoose.disconnect();
         this.isConnected = false;
-        console.log('📴 Desconectado de MongoDB Atlas');
       }
     } catch (error) {
       console.error('❌ Error desconectando de MongoDB:', error.message);
@@ -116,23 +111,19 @@ class MongoConnection {
   // 🔄 Configurar listeners de eventos
   setupEventListeners() {
     mongoose.connection.on('connected', () => {
-      console.log('🟢 MongoDB Atlas conectado');
       this.isConnected = true;
     });
 
     mongoose.connection.on('error', (error) => {
-      console.error('🔴 Error en MongoDB Atlas:', error);
+      console.error('🔴 Error en MongoDB:', error.message);
       this.isConnected = false;
     });
 
     mongoose.connection.on('disconnected', () => {
-      console.log('🟡 MongoDB Atlas desconectado');
       this.isConnected = false;
     });
 
-    // Reconexión automática en caso de pérdida de conexión
     mongoose.connection.on('reconnected', () => {
-      console.log('🔄 MongoDB Atlas reconectado');
       this.isConnected = true;
     });
   }

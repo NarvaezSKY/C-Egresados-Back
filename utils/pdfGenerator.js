@@ -1,243 +1,255 @@
+// pdfGenerator.js
 import PDFDocument from "pdfkit";
+import fs from "fs";
 
 class PDFGenerator {
-  
-  // 📌 Generar carnet PDF para egresado
-  async generateCarnet(egresadoData, res, qrBuffer = null) {
+  /**
+   * Genera un carné vertical tipo credencial (pixel-perfect según especificación)
+   * @param {Object} egresadoData - { nombre, cedula, ficha, programa, regional, centro, fechaEgreso, carnetExpires }
+   * @param {import('http').ServerResponse} res - response express (o similar)
+   * @param {Buffer|null} qrBuffer - Buffer con imagen QR (png/jpg)
+   * @param {Buffer|null} photoBuffer - Buffer con fotografía (opcional, si null se deja cuadro gris)
+   */
+  async generateCarnet(egresadoData, res, qrBuffer = null, photoBuffer = null) {
+    // Tamaño tipo credencial: 3.37" x 2.125" -> aprox 242 x 384 puntos (aumentado para que quepa todo)
+    const width = 242;
+    const height = 384;
     const doc = new PDFDocument({
-      size: [300, 480], // Aumentar un poco la altura para acomodar el QR
-      margins: { top: 15, bottom: 15, left: 20, right: 20 }
+      size: [width, height],
+      margins: { top: 0, left: 0, right: 0, bottom: 0 }
     });
 
-    // Configurar headers de respuesta
+    // Headers
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=carnet-${egresadoData.cedula}-${Date.now()}.pdf`
+      `attachment; filename=carnet-${egresadoData.cedula || "unknown"}-${Date.now()}.pdf`
     );
 
     doc.pipe(res);
 
-    // 🎨 DISEÑO DEL CARNET - REORGANIZADO PARA UNA SOLA PÁGINA
-    this._drawHeader(doc);
-    this._drawAvatar(doc);
-    this._drawEgresadoLabel(doc);
-    
-    // Dibujar QR centrado debajo del avatar si se proporciona
-    if (qrBuffer) {
-      this._drawQRCode(doc, qrBuffer, egresadoData);
-    }
-    
-    this._drawPersonalInfo(doc, egresadoData, qrBuffer ? true : false);
+    // Colores
+    const GREEN = "#39A900";
+    const GREY = "#666666";
+    const LIGHT_GREY = "#E5E5E5";
+    const BLACK = "#000000";
 
-    doc.end();
-  }
+    // Margen interior para los elementos (para reproducir proporciones de la imagen)
+    const left = 12;
+    const right = 12;
+    const top = 12;
 
-  // 📌 Dibujar header con logo SENA
-  _drawHeader(doc) {
+    // --- HEADER: logo (izq) y cuadro fotografía (der) ---
+    // Logo
     try {
-      // Intentar cargar y agregar el logo SENA
-      doc.image('./logosena.png', 20, 15, { width: 30, height: 30 });
-      // Texto SENA junto al logo
-      doc.fillColor("#39A900")
-        .fontSize(22)
-        .font("Helvetica-Bold")
-        .text("SENA", 60, 20);
-    } catch (error) {
-      // Si no se encuentra el logo, solo mostrar el texto
-      doc.fillColor("#39A900")
-        .fontSize(22)
-        .font("Helvetica-Bold")
-        .text("SENA", 20, 20);
+      // Cargar logo y dimensionarlo para que quede proporcional como en la referencia.
+      // Ajusta path si tu logosena.png está en otra carpeta.
+      const logoWidth = 50; // reducido para ahorrar espacio
+      const logoX = left;
+      const logoY = top;
+      doc.image("./logosena.png", logoX, logoY, { width: logoWidth });
+    } catch (e) {
+      // Si falla, dibujamos solo texto SENA en verde (fallback)
+      doc.fillColor(GREEN).fontSize(16).font("Helvetica-Bold").text("SENA", left, top);
     }
-  }
 
-  // 📌 Dibujar avatar genérico
-  _drawAvatar(doc) {
-    // Marco circular gris claro
-    doc.lineWidth(2)
-      .strokeColor('#CCCCCC')
-      .circle(80, 150, 32)
-      .stroke();
+    // Cuadro de fotografía (parte superior derecha), tamaño proporcional a la referencia
+    const photoBoxW = 68;
+    const photoBoxH = 78;
+    const photoBoxX = width - right - photoBoxW;
+    const photoBoxY = top + 4;
 
-    // Avatar más pequeño (círculo y elipse)
-    doc.circle(80, 140, 18).fill("#9CA3AF");
-    doc.ellipse(80, 170, 25, 12).fill("#9CA3AF");
-  }
+    // marco del cuadro (relleno gris claro)
+    doc.rect(photoBoxX, photoBoxY, photoBoxW, photoBoxH)
+       .fillColor(LIGHT_GREY)
+       .fill();
 
-  // 📌 Dibujar etiqueta "EGRESADO"
-  _drawEgresadoLabel(doc) {
-    doc.fillColor("#39A900")
-      .fontSize(12)
-      .font("Helvetica-Bold")
-      .text("EGRESADO", 180, 120);
-  }
-
-  // 📌 Dibujar información personal del egresado
-  _drawPersonalInfo(doc, egresadoData, hasQR = false) {
-    // Ajustar posición inicial según si hay QR o no
-    let yPos = hasQR ? 290 : 250; // Si hay QR, comenzar más abajo
-
-    // Nombres y Apellidos en verde
-    doc.fillColor("#39A900")
-      .fontSize(12)
-      .font("Helvetica-Bold")
-      .text(egresadoData.nombre || "Nombres Apellidos", 20, yPos, {
-        width: 260,
-        align: "center"
-      });
-
-    yPos += 18; // Reducir espacio
-
-    // Número de documento
-    doc.fillColor("#000000")
-      .fontSize(10)
-      .font("Helvetica")
-      .text(`C.C. ${egresadoData.cedula || "N/A"}`, 20, yPos, {
-        width: 260,
-        align: "center"
-      });
-
-    yPos += 15; // Reducir espacio
-
-    // Ficha
-    doc.fontSize(10)
-      .font("Helvetica")
-      .text(`Ficha: ${egresadoData.ficha || "N/A"}`, 20, yPos, {
-        width: 260,
-        align: "center"
-      });
-
-    yPos += 15; // Reducir espacio
-
-    // Programa de formación
-    doc.fontSize(9)
-      .font("Helvetica")
-      .text(egresadoData.programa || "Programa de formación", 20, yPos, {
-        width: 260,
-        align: "center"
-      });
-
-    yPos += 25; // Reducir espacio
-
-    // Regional en verde
-    doc.fillColor("#39A900")
-      .fontSize(10)
-      .font("Helvetica-Bold")
-      .text(egresadoData.regional || "Regional Cauca", 20, yPos, {
-        width: 260,
-        align: "center"
-      });
-
-    yPos += 15; // Reducir espacio
-
-    // Centro de formación en verde
-    doc.fontSize(8) // Reducir tamaño de fuente
-      .font("Helvetica-Bold")
-      .text(egresadoData.centro, 20, yPos, {
-        width: 260,
-        align: "center"
-      });
-
-    yPos += 20; // Reducir espacio
-
-    // Fecha de certificación
-    doc.fillColor("#000000")
-      .fontSize(9)
-      .font("Helvetica")
-      .text(`Fecha de certificación: ${egresadoData.fechaEgreso}`, 20, yPos, {
-        width: 260,
-        align: "center"
-      });
-  }
-
-  // 📌 Dibujar código QR centrado debajo del avatar
-  _drawQRCode(doc, qrBuffer, egresadoData) {
-    try {
-      // Posición centrada debajo del avatar
-      const qrSize = 60;
-      const pageWidth = 300;
-      const xPos = (pageWidth - qrSize) / 2; // Centrar horizontalmente
-      const yPos = 190; // Debajo del avatar (avatar está en ~150)
-
-      // Marco sutil alrededor del QR
-      doc.rect(xPos - 2, yPos - 2, qrSize + 4, qrSize + 4)
-         .strokeColor('#E5E5E5')
-         .lineWidth(1)
-         .stroke();
-
-      // Insertar imagen QR
-      doc.image(qrBuffer, xPos, yPos, {
-        width: qrSize,
-        height: qrSize
-      });
-
-      // Texto "Escanea para verificar" centrado debajo del QR
-      doc.fillColor("#666666")
-         .fontSize(8)
-         .font("Helvetica")
-         .text("Escanea para verificar", 20, yPos + qrSize + 8, {
-           width: 260,
+    // Si hay photoBuffer, la insertamos centrada en el cuadro con cover-fit
+    if (photoBuffer) {
+      try {
+        // Calcular cover-fit para no distorsionar (centrado)
+        doc.image(photoBuffer, photoBoxX + 4, photoBoxY + 4, {
+          fit: [photoBoxW - 8, photoBoxH - 8],
+          align: "center",
+          valign: "center"
+        });
+      } catch (e) {
+        // ignore, dejamos el cuadro gris
+      }
+    } else {
+      // Texto "FOTOGRAFÍA" centrado dentro del cuadro
+      doc.fillColor(GREY)
+         .fontSize(9)
+         .font("Helvetica-Bold")
+         .text("FOTOGRAFÍA", photoBoxX, photoBoxY + (photoBoxH / 2) - 6, {
+           width: photoBoxW,
            align: "center"
          });
-
-      // Fecha de vencimiento del carnet
-      if (egresadoData.carnetExpires) {
-        doc.fontSize(7)
-           .text(`Válido hasta: ${egresadoData.carnetExpires}`, 20, yPos + qrSize + 22, {
-             width: 260,
-             align: "center"
-           });
-      }
-
-    } catch (error) {
-      console.error('❌ Error agregando QR al PDF:', error);
-      // Si falla el QR, continuar sin él
     }
-  }
 
-  // 📌 Generar reporte PDF de estadísticas (útil para administradores)
-  async generateStatsReport(statsData, res) {
-    const doc = new PDFDocument();
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=reporte-estadisticas.pdf`
-    );
-
-    doc.pipe(res);
-
-    // Header del reporte
-    doc.fontSize(18)
+    // --- BLOQUE "EGRESADO" y línea verde (alineado izquierda, con espacio similar a referencia) ---
+    const egresadoY = photoBoxY + photoBoxH + 6; // posición justo debajo del header
+    doc.fillColor(GREY)
+       .fontSize(8)
        .font("Helvetica-Bold")
-       .text("Reporte de Estadísticas - Egresados SENA", { align: "center" });
+       .text("EGRESADO", left, egresadoY);
 
-    doc.moveDown();
+    // Línea verde fina a la derecha del título (se muestra debajo en referencia: ligera separación)
+    const lineY = egresadoY + 10;
+    const lineX = left;
+    const lineWidth = width - left - right - (photoBoxW / 8); // un poco de espacio a la derecha
+    doc.rect(lineX, lineY, lineWidth, 1.5)
+       .fillColor(GREEN)
+       .fill();
 
-    // Información general
-    doc.fontSize(14)
+    // --- NOMBRE (verde, negrita, alineado a la izquierda con desplazamiento como la imagen) ---
+    const nameY = lineY + 6;
+    const nameBoxWidth = width - left - right - 20; // espacio lateral
+    doc.fillColor(GREEN)
+       .fontSize(14)
        .font("Helvetica-Bold")
-       .text(`Total de egresados: ${statsData.total}`);
+       .text(egresadoData.nombre || "Nombres\nApellidos", left, nameY, {
+         width: nameBoxWidth,
+         align: "left",
+         lineGap: -2
+       });
 
-    doc.moveDown();
+    // --- QR centrado debajo del nombre (proporción y tamaño según la referencia) ---
+    const qrSize = 80; // tamaño QR reducido para que quepa mejor
+    // Calcular Y para que visualmente coincida con la referencia:
+    // (dejamos un espacio vertical razonable entre nombre y QR)
+    const qrY = nameY + 38;
+    const qrX = Math.round((width - qrSize) / 2);
 
-    // Programas
-    doc.fontSize(12)
-       .font("Helvetica-Bold")
-       .text("Distribución por programas:");
+    if (qrBuffer) {
+      try {
+        doc.image(qrBuffer, qrX, qrY, { width: qrSize, height: qrSize });
+      } catch (e) {
+        // Si falla, dibujar borde placeholder
+        doc.rect(qrX, qrY, qrSize, qrSize)
+           .strokeColor(GREY)
+           .lineWidth(0.5)
+           .stroke();
+      }
+    } else {
+      // placeholder QR
+      doc.rect(qrX, qrY, qrSize, qrSize)
+         .strokeColor(GREY)
+         .lineWidth(0.5)
+         .stroke();
+    }
 
-    Object.entries(statsData.programas).forEach(([programa, cantidad]) => {
-      doc.fontSize(10)
+    // Texto pequeño debajo del QR: "Escanea para verificar" y "Válido hasta: DD/MM/YYYY"
+    const smallTextY = qrY + qrSize + 4;
+    doc.fillColor(GREY)
+       .fontSize(6)
+       .font("Helvetica")
+       .text("Escanea para verificar", qrX, smallTextY, {
+         width: qrSize,
+         align: "center"
+       });
+
+    if (egresadoData.carnetExpires) {
+      doc.fontSize(6)
          .font("Helvetica")
-         .text(`• ${programa}: ${cantidad} egresados`);
-    });
+         .text(`Válido hasta: ${egresadoData.carnetExpires}`, qrX, smallTextY + 8, {
+           width: qrSize,
+           align: "center"
+         });
+    }
 
-    doc.moveDown();
-    doc.fontSize(8)
-       .text(`Generado el: ${new Date().toLocaleString('es-ES')}`);
+    // --- Fila c.c. y Ficha (en dos columnas, alineado izquierda/derecha similar a referencia) ---
+    // Ponemos esta fila bajo el QR, con margen lateral para que quede similar
+    const rowY = smallTextY + 22;
+    const labelLeftX = left + 4;
+    const labelRightX = width - right - 65;
+
+    // c.c.
+    doc.fillColor(GREY)
+       .fontSize(7)
+       .font("Helvetica-Bold")
+       .text("c.c.", labelLeftX, rowY);
+
+    doc.fillColor(BLACK)
+       .fontSize(8)
+       .font("Helvetica")
+       .text(egresadoData.cedula || "1110288054", labelLeftX + 18, rowY);
+
+    // Ficha (alineado a la derecha de la fila)
+    doc.fillColor(GREY)
+       .fontSize(7)
+       .font("Helvetica-Bold")
+       .text("Ficha:", labelRightX, rowY);
+
+    doc.fillColor(BLACK)
+       .fontSize(8)
+       .font("Helvetica")
+       .text(egresadoData.ficha || "2556678", labelRightX + 30, rowY);
+
+    // --- Programa (negrita, centrado) ---
+    const programaY = rowY + 16;
+    doc.fillColor(BLACK)
+       .fontSize(9)
+       .font("Helvetica-Bold")
+       .text(egresadoData.programa || "ANÁLISIS Y DESARROLLO DE SOFTWARE", left, programaY, {
+         width: width - left - right,
+         align: "center"
+       });
+
+    // --- Regional (verde) ---
+    const regionalY = programaY + 14;
+    doc.fillColor(GREEN)
+       .fontSize(8)
+       .font("Helvetica-Bold")
+       .text(egresadoData.regional || "Regional Cauca", left, regionalY, {
+         width: width - left - right,
+         align: "center"
+       });
+
+    // --- Centro de formación (verde, texto más pequeño) ---
+    const centroY = regionalY + 11;
+    doc.fillColor(GREEN)
+       .fontSize(7)
+       .font("Helvetica-Bold")
+       .text(egresadoData.centro || "Centro de Teleinformática y Producción Industrial", left + 6, centroY, {
+         width: width - left - right - 12,
+         align: "center"
+       });
+
+    // --- Fecha de certificación (negro, centrado, abajo) ---
+    const fechaY = centroY + 13;
+    doc.fillColor(BLACK)
+       .fontSize(7)
+       .font("Helvetica")
+       .text(`Fecha de certificación: ${egresadoData.fechaEgreso || "01/12/2024"}`, left, fechaY, {
+         width: width - left - right,
+         align: "center"
+       });
+
+    // Opcional: delgado borde exterior (muy sutil) para dar aspecto de tarjeta - si no lo quieres comentar esta parte
+    // Doc.strokeColor('#e6e6e6').lineWidth(0.8).rect(6, 6, width - 12, height - 12).stroke();
 
     doc.end();
+  }
+
+  // Método auxiliar para generar un PDF de ejemplo local (solo para pruebas, no usado por la API)
+  async generateExample(outputPath = "./carnet_ejemplo.pdf") {
+    const fakeRes = fs.createWriteStream(outputPath);
+    const sample = {
+      nombre: "Cristian Samir\nNarvaez Quintero",
+      cedula: "1110288054",
+      ficha: "2556678",
+      programa: "ANÁLISIS Y DESARROLLO DE SOFTWARE",
+      regional: "Regional Cauca",
+      centro: "Centro de Teleinformática y Producción Industrial",
+      fechaEgreso: "01/12/2024",
+      carnetExpires: "22/11/2025"
+    };
+
+    await this.generateCarnet(sample, { setHeader: () => {}, pipe: (stream) => {}, end: () => {} }, null, null);
+
+    // Nota: generateCarnet espera un objeto 'res' tipo http.Response con .setHeader y .pipe.
+    // Para crear un archivo local de prueba, es más directo replicar la lógica en un script separado.
   }
 }
 

@@ -256,9 +256,22 @@ class EgresadoController {
       
       const validation = await egresadoServiceMongo.validateCarnetByQR(qrData);
       
-      const statusCode = validation.valid ? 200 : 
-                        validation.status === 'expired' ? 410 : 
-                        validation.status === 'not_found' ? 404 : 400;
+      // Determinar código HTTP apropiado
+      let statusCode = 200; // Por defecto OK
+      
+      if (validation.type === 'qr_invalid') {
+        // QR malformado o inválido
+        statusCode = 400;
+      } else if (validation.status === 'not_found') {
+        // Carnet no encontrado
+        statusCode = 404;
+      } else if (validation.status === 'expirado') {
+        // Carnet expirado - 200 OK con información de expiración
+        statusCode = 200;
+      } else if (validation.status === 'revocado') {
+        // Carnet revocado - 410 Gone
+        statusCode = 410;
+      }
 
       res.status(statusCode).json(validation);
 

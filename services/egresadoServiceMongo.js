@@ -1,6 +1,6 @@
 import Egresado from '../models/Egresado.js';
 import mongoConnection from '../db/mongoConnection.js';
-import surveyConnection from "../db/surveyConnection.js";
+import sharepointConnection from "../db/sharepointConnection.js"; // Cambiado a SharePoint
 import carnetService from "./carnetService.js";  // Usar el nuevo servicio MongoDB
 import qrService from "./qrService.js";
 
@@ -147,8 +147,8 @@ class MongoEgresadoService {
 
     await this.ensureMongoConnection();
     
-    // 🔍 VALIDAR QUE HAYA RESPONDIDO LA ENCUESTA
-    const hasAnsweredSurvey = surveyConnection.hasAnsweredSurvey(cedula);
+    // 🔍 VALIDAR QUE HAYA RESPONDIDO LA ENCUESTA (desde SharePoint)
+    const hasAnsweredSurvey = await sharepointConnection.hasAnsweredSurvey(cedula);
     if (!hasAnsweredSurvey) {
       throw new Error("El egresado no ha respondido a la encuesta");
     }
@@ -228,8 +228,8 @@ class MongoEgresadoService {
         programas[stat._id] = stat.count;
       });
 
-      // Obtener estadísticas de la encuesta
-      const surveyStats = surveyConnection.getStats();
+      // Obtener estadísticas de la encuesta (desde SharePoint)
+      const surveyStats = sharepointConnection.getStats();
 
       return {
         totalEgresados: total,
@@ -258,7 +258,7 @@ class MongoEgresadoService {
 
   // 📊 Estado de encuesta
   async checkSurveyStatus(cedula) {
-    const hasAnswered = surveyConnection.hasAnsweredSurvey(cedula);
+    const hasAnswered = await sharepointConnection.hasAnsweredSurvey(cedula);
     return {
       cedula: cedula,
       hasAnsweredSurvey: hasAnswered,
@@ -268,7 +268,7 @@ class MongoEgresadoService {
 
   // 📋 Recargar datos de encuesta
   async reloadSurveyData() {
-    const count = surveyConnection.reloadData();
+    const count = await sharepointConnection.reloadData();
     return {
       message: "Datos de encuesta recargados exitosamente",
       count: count
@@ -277,7 +277,7 @@ class MongoEgresadoService {
 
   // 🐛 Debug de encuesta
   async debugSurveyCedulas() {
-    return surveyConnection.debugCedulas(20);
+    return sharepointConnection.debugCedulas(20);
   }
 
   // ✅ Validar carnet por QR

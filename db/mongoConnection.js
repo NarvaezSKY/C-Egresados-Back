@@ -10,8 +10,21 @@ class MongoConnection {
     this.maxRetries = 5;
   }
 
-  // 🔌 Conectar a MongoDB Atlas
+  // 🔌 Conectar a MongoDB Atlas (optimizado para serverless)
   async connect() {
+    // En serverless, reusar conexión si ya existe
+    if (mongoose.connection.readyState === 1) {
+      console.log('✅ Reutilizando conexión existente a MongoDB');
+      this.isConnected = true;
+      return true;
+    }
+
+    if (mongoose.connection.readyState === 2) {
+      console.log('⏳ Conexión a MongoDB en progreso, esperando...');
+      await this.waitForConnection();
+      return true;
+    }
+
     try {
       this.connectionAttempts++;
       
@@ -21,33 +34,50 @@ class MongoConnection {
         throw new Error('MONGODB_URI no está definida en las variables de entorno');
       }
 
+      console.log('🔌 Conectando a MongoDB Atlas...');
+
       const options = {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 30000, // 30 segundos
-        socketTimeoutMS: 45000, // 45 segundos
+        serverSelectionTimeoutMS: 10000, // 10 segundos (reducido para serverless)
+        socketTimeoutMS: 45000,
         bufferCommands: false,
-        maxPoolSize: 10, // Mantiene hasta 10 conexiones socket
-        minPoolSize: 2,  // Mantiene mínimo 2 conexiones socket
-        maxIdleTimeMS: 30000, // Cierra conexiones después de 30 segundos de inactividad
-        family: 4 // Use IPv4, skip trying IPv6
+        maxPoolSize: 10,
+        minPoolSize: 1, // Reducido para serverless
+        maxIdleTimeMS: 10000, // Reducido para serverless
       };
 
       await mongoose.connect(mongoUri, options);
       
       this.isConnected = true;
+      console.log('✅ Conectado a MongoDB Atlas');
       
       return true;
     } catch (error) {
       console.error(`❌ Error conectando a MongoDB Atlas:`, error.message);
       
       if (this.connectionAttempts < this.maxRetries) {
-        await this.delay(5000);
+        console.log(`🔄 Reintentando conexión (${this.connectionAttempts}/${this.maxRetries})...`);
+        await this.delay(2000);
         return this.connect();
       } else {
-        throw new Error(`No se pudo conectar a MongoDB Atlas después de ${this.maxRetries} intentos`);
+        throw new Error(`No se pudo conectar a MongoDB Atlas después de ${this.maxRetries} intentos: ${error.message}`);
       }
     }
+  }
+
+  // ⏳ Esperar a que se complete la conexión
+  async waitForConnection(timeout = 10000) {
+    const startTime = Date.now();
+    while (mongoose.connection.readyState === 2) {
+      if (Date.now() - startTime > timeout) {
+        throw new Error('Timeout esperando conexión a MongoDB');
+      }
+      await this.delay(100);
+    }
+    if (mongoose.connection.readyState === 1) {
+      this.isConnected = true;
+      return true;
+    }
+    throw new Error('Error en conexión a MongoDB');
   }
 
   // 🔌 Desconectar de MongoDB
@@ -64,10 +94,11 @@ class MongoConnection {
 
   // ✅ Verificar estado de conexión
   getConnectionStatus() {
+    const readyState = mongoose.connection.readyState;
     return {
-      isConnected: this.isConnected,
-      readyState: mongoose.connection.readyState,
-      readyStateText: this.getReadyStateText(mongoose.connection.readyState),
+      isConnected: readyState === 1,
+      readyState: readyState,
+      readyStateText: this.getReadyStateText(readyState),
       host: mongoose.connection.host,
       name: mongoose.connection.name
     };

@@ -14,9 +14,19 @@ class MongoEgresadoService {
   // 🔗 Verificar conexión a MongoDB
   async ensureMongoConnection() {
     const status = mongoConnection.getConnectionStatus();
+    
+    // Si no está conectado, intentar conectar
     if (!status.isConnected) {
-      throw new Error('MongoDB no está conectado. La generación de carnets requiere base de datos.');
+      console.log('⚠️ MongoDB no conectado, intentando conectar...');
+      try {
+        await mongoConnection.connect();
+        console.log('✅ Conexión a MongoDB establecida');
+      } catch (error) {
+        console.error('❌ Error conectando a MongoDB:', error.message);
+        throw new Error('MongoDB no está conectado. La generación de carnets requiere base de datos.');
+      }
     }
+    
     return true;
   }
 

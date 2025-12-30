@@ -26,8 +26,7 @@ RECAPTCHA_SECRET_KEY=tu_secret_key_aqui
 JWT_SECRET=tu_jwt_secret_aqui
 
 # 📊 SharePoint - Encuesta de Egresados
-SHAREPOINT_EXCEL_URL=https://sena4-my.sharepoint.com/personal/egresadosregcauca_sena_edu_co/_layouts/15/download.aspx?UniqueId=1f1d0616-d301-4e5d-9233-07b48dcc1d28
-```
+SHAREPOINT_EXCEL_URL=https://sena4-my.sharepoint.com/personal
 
 ### 2. **Verificar que `.env` esté en `.gitignore`**
 

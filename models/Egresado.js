@@ -39,7 +39,6 @@ const egresadoSchema = new mongoose.Schema({
   },
   centro: {
     type: String,
-    default: 'Centro de Teleinformática y Producción Industrial',
     trim: true
   },
   
@@ -106,25 +105,15 @@ egresadoSchema.statics.getStatsByProgram = function() {
 
 // 📌 Middleware pre-save OPTIMIZADO para extraer regional y centro
 egresadoSchema.pre('save', function(next) {
-  // Solo procesar si es un documento nuevo o se modifica denominacionPrograma
+  // Solo establecer valores por defecto si están vacíos
   if (this.isNew || this.isModified('denominacionPrograma')) {
     
-    // Establecer valores por defecto optimizados para Regional Cauca
+    // Establecer valores por defecto solo si no existen
     if (!this.regional) {
       this.regional = 'Regional Cauca';
     }
-    
     if (!this.centro) {
-      this.centro = 'Centro de Teleinformática y Producción Industrial';
-    }
-    
-    // Optimización: Si el programa contiene ciertas palabras clave, 
-    // podemos inferir información adicional
-    const programa = this.denominacionPrograma?.toLowerCase() || '';
-    
-    if (programa.includes('software') || programa.includes('sistemas') || 
-        programa.includes('informática') || programa.includes('teleinformática')) {
-      this.centro = 'Centro de Teleinformática y Producción Industrial';
+      this.centro;
     }
   }
   

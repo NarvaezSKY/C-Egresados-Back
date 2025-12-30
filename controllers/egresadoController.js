@@ -121,14 +121,26 @@ class EgresadoController {
         });
       }
 
+      if (error.message.includes("no ha respondido a la encuesta")) {
+        return res.status(403).json({
+          message: "Encuesta pendiente",
+          error: error.message
+        });
+      }
+
+      if (error.message.includes("Ya existe un carnet válido")) {
+        return res.status(409).json({
+          message: "Carnet ya generado",
+          error: error.message
+        });
+      }
+
       res.status(500).json({
         message: "Error generando carnet",
         error: error.message
       });
     }
-  }
-
-  // 📌 Obtener todos los egresados (endpoint administrativo)
+  }  // 📌 Obtener todos los egresados (endpoint administrativo)
   async getAll(req, res) {
     try {
       const egresados = await egresadoServiceMongo.getAllEgresados();

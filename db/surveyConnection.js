@@ -1,9 +1,12 @@
 import XLSX from "xlsx";
 import { SURVEY_CONFIG } from "../config/fieldMapping.js";
+import mongoConnection from "./mongoConnection.js";
+import RespuestaEncuesta from "../models/RespuestaEncuesta.js";
 
 class SurveyConnection {
   constructor() {
     this.surveyData = [];
+    this.useMongoFallback = true; // Intentar MongoDB primero
     this.loadData();
   }
 
@@ -73,12 +76,28 @@ class SurveyConnection {
   }
 
   // 📌 Verificar si un egresado ha contestado la encuesta
-  hasAnsweredSurvey(cedula) {
+  async hasAnsweredSurvey(cedula) {
     if (!cedula) return false;
     
     // Limpiar la cédula de entrada
     const cedulaStr = this.cleanCedula(cedula);
     
+    // Intentar primero desde MongoDB (para producción)
+    if (this.useMongoFallback) {
+      try {
+        const status = mongoConnection.getConnectionStatus();
+        if (status.isConnected) {
+          const exists = await RespuestaEncuesta.hasAnswered(cedulaStr);
+          console.log(`🔍 Verificación de encuesta (MongoDB): ${cedulaStr} → ${exists ? 'SÍ' : 'NO'}`);
+          return exists;
+        }
+      } catch (error) {
+        console.warn(`⚠️ Error consultando MongoDB, usando fallback a Excel:`, error.message);
+      }
+    }
+    
+    // Fallback a archivo Excel (para desarrollo local)
+    console.log(`📁 Verificación de encuesta (Excel): ${cedulaStr}`);
     return this.surveyData.some(response => {
       const responseCedula = response[SURVEY_CONFIG.cedulaField];
       if (!responseCedula) return false;

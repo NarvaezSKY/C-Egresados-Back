@@ -9,8 +9,16 @@ const OPTIMIZED_FIELD_MAPPING = {
   ficha: "Ficha", 
   nombreAprendiz: "Nombre Aprendiz",
   denominacionPrograma: "Denominación Programa",
-  fechaCertificacion: "Fecha Certificación"
-  // regional y centro se establecen automáticamente en el modelo
+  fechaCertificacion: "Fecha Certificación",
+  regional: "Regional"
+  // centro NO está en Excel, se infiere del nombre de la hoja
+};
+
+// 📌 Mapeo de nombres de hojas a centros de formación
+const SHEET_TO_CENTRO = {
+  "CTPI": "Centro de Teleinformática y Producción Industrial",
+  "AGROPECUARIO": "Centro Agropecuario",
+  "COMERCIO Y SERVICIOS": "Centro de Comercio y Servicios"
 };
 
 class OptimizedMigrationScript {
@@ -196,10 +204,13 @@ class OptimizedMigrationScript {
       transformed[mongoField] = value;
     }
     
+    // 🏢 Asignar centro según la hoja de origen
+    const sourceSheet = row._sourceSheet;
+    transformed.centro = SHEET_TO_CENTRO[sourceSheet] || 'Centro de Teleinformática y Producción Industrial';
+    
     // Campos adicionales mínimos
     transformed.fechaImportacion = new Date();
     transformed.estado = 'activo';
-    // regional y centro se establecen automáticamente en el modelo
     
     return transformed;
   }

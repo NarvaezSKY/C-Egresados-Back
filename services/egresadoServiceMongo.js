@@ -1,6 +1,6 @@
 import Egresado from '../models/Egresado.js';
 import mongoConnection from '../db/mongoConnection.js';
-import sharepointConnection from "../db/sharepointConnection.js"; // Cambiado a SharePoint
+import surveyConnection from "../db/surveyConnection.js"; // Archivo local
 import carnetService from "./carnetService.js";  // Usar el nuevo servicio MongoDB
 import qrService from "./qrService.js";
 
@@ -59,6 +59,12 @@ class MongoEgresadoService {
 
   // 🎯 Formatear egresado de MongoDB para compatibilidad con carnet
   formatEgresadoForCarnet(mongoEgresado) {
+    console.log('🔍 DEBUG formatEgresadoForCarnet - Datos de entrada:', {
+      centro: mongoEgresado.centro,
+      regional: mongoEgresado.regional,
+      numeroDocumento: mongoEgresado.numeroDocumento
+    });
+
     return {
       'Número Documento': mongoEgresado.numeroDocumento,
       'Ficha': mongoEgresado.ficha,
@@ -66,7 +72,7 @@ class MongoEgresadoService {
       'Denominación Programa': mongoEgresado.denominacionPrograma,
       'Fecha Certificación': this.formatDateForCarnet(mongoEgresado.fechaCertificacion),
       'Regional': mongoEgresado.regional || 'Regional Cauca',
-      'Centro': mongoEgresado.centro || mongoEgresado.regional || 'Centro de Formación'
+      'Centro': mongoEgresado.centro || 'Centro de Teleinformática y Producción Industrial'
     };
   }
 
@@ -128,15 +134,31 @@ class MongoEgresadoService {
 
   // 🗺️ Mapear campos optimizado (MongoDB)
   async mapFieldsOptimized(egresado) {
-    return {
-      cedula: egresado['Número Documento'],
-      ficha: egresado['Ficha'],
-      nombre: egresado['Nombre Aprendiz'],
-      programa: egresado['Denominación Programa'],
-      fechaEgreso: egresado['Fecha Certificación'],
-      regional: egresado['Regional'],
-      centro: egresado['Centro']
+    // Debug: ver qué campos están llegando
+    console.log('🔍 DEBUG - Campos del egresado:', {
+      centro_mongo: egresado.centro,
+      centro_excel: egresado['Centro'],
+      regional_mongo: egresado.regional,
+      regional_excel: egresado['Regional'],
+      todasLasClaves: Object.keys(egresado).filter(k => k.includes('centro') || k.includes('Centro') || k.includes('regional') || k.includes('Regional'))
+    });
+
+    const mapped = {
+      cedula: egresado.numeroDocumento || egresado['Número Documento'],
+      ficha: egresado.ficha || egresado['Ficha'],
+      nombre: egresado.nombreAprendiz || egresado['Nombre Aprendiz'],
+      programa: egresado.denominacionPrograma || egresado['Denominación Programa'],
+      fechaEgreso: egresado.fechaCertificacion || egresado['Fecha Certificación'],
+      regional: egresado.regional || egresado['Regional'] || 'Regional Cauca',
+      centro: egresado.centro || egresado['Centro'] || 'Centro de Teleinformática y Producción Industrial'
     };
+
+    console.log('✅ DEBUG - Campos mapeados:', {
+      centro: mapped.centro,
+      regional: mapped.regional
+    });
+
+    return mapped;
   }
 
   // 📋 Obtener egresado para carnet con QR y registro
@@ -147,8 +169,8 @@ class MongoEgresadoService {
 
     await this.ensureMongoConnection();
     
-    // 🔍 VALIDAR QUE HAYA RESPONDIDO LA ENCUESTA (desde SharePoint)
-    const hasAnsweredSurvey = await sharepointConnection.hasAnsweredSurvey(cedula);
+    // 🔍 VALIDAR QUE HAYA RESPONDIDO LA ENCUESTA (MongoDB o Excel fallback)
+    const hasAnsweredSurvey = await surveyConnection.hasAnsweredSurvey(cedula);
     if (!hasAnsweredSurvey) {
       throw new Error("El egresado no ha respondido a la encuesta");
     }

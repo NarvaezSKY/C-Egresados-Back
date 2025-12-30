@@ -11,9 +11,9 @@ class PDFGenerator {
    * @param {Buffer|null} photoBuffer - Buffer con fotografía (opcional, si null se deja cuadro gris)
    */
   async generateCarnet(egresadoData, res, qrBuffer = null, photoBuffer = null) {
-    // Tamaño tipo credencial: 3.37" x 2.125" -> aprox 242 x 384 puntos (aumentado para que quepa todo)
+    // Tamaño tipo credencial: 3.37" x 2.125" -> aprox 242 x 384 puntos (ajustado para contenido)
     const width = 242;
-    const height = 384;
+    const height = 375; // Reducido para eliminar espacio en blanco inferior
     const doc = new PDFDocument({
       size: [width, height],
       margins: { top: 0, left: 0, right: 0, bottom: 0 }
@@ -37,7 +37,7 @@ class PDFGenerator {
     // Margen interior para los elementos (para reproducir proporciones de la imagen)
     const left = 12;
     const right = 12;
-    const top = 12;
+    const top = 18; // Aumentado margen superior
 
     // --- HEADER: logo (izq) y cuadro fotografía (der) ---
     // Logo
@@ -77,25 +77,18 @@ class PDFGenerator {
         // ignore, dejamos el cuadro gris
       }
     } else {
-      // Texto "FOTOGRAFÍA" centrado dentro del cuadro
+      // Texto "EGRESADO" centrado dentro del cuadro
       doc.fillColor(GREY)
          .fontSize(9)
          .font("Helvetica-Bold")
-         .text("FOTOGRAFÍA", photoBoxX, photoBoxY + (photoBoxH / 2) - 6, {
+         .text("EGRESADO", photoBoxX, photoBoxY + (photoBoxH / 2) - 6, {
            width: photoBoxW,
            align: "center"
          });
     }
 
-    // --- BLOQUE "EGRESADO" y línea verde (alineado izquierda, con espacio similar a referencia) ---
-    const egresadoY = photoBoxY + photoBoxH + 6; // posición justo debajo del header
-    doc.fillColor(GREY)
-       .fontSize(8)
-       .font("Helvetica-Bold")
-       .text("EGRESADO", left, egresadoY);
-
-    // Línea verde fina a la derecha del título (se muestra debajo en referencia: ligera separación)
-    const lineY = egresadoY + 10;
+    // --- Línea verde (debajo del header, sin texto "EGRESADO") ---
+    const lineY = photoBoxY + photoBoxH + 8; // posición justo debajo del header
     const lineX = left;
     const lineWidth = width - left - right - (photoBoxW / 8); // un poco de espacio a la derecha
     doc.rect(lineX, lineY, lineWidth, 1.5)
@@ -118,7 +111,7 @@ class PDFGenerator {
     const qrSize = 80; // tamaño QR reducido para que quepa mejor
     // Calcular Y para que visualmente coincida con la referencia:
     // (dejamos un espacio vertical razonable entre nombre y QR)
-    const qrY = nameY + 38;
+    const qrY = nameY + 42;
     const qrX = Math.round((width - qrSize) / 2);
 
     if (qrBuffer) {
@@ -160,7 +153,7 @@ class PDFGenerator {
 
     // --- Fila c.c. y Ficha (en dos columnas, alineado izquierda/derecha similar a referencia) ---
     // Ponemos esta fila bajo el QR, con margen lateral para que quede similar
-    const rowY = smallTextY + 22;
+    const rowY = smallTextY + 24;
     const labelLeftX = left + 4;
     const labelRightX = width - right - 65;
 
@@ -186,18 +179,25 @@ class PDFGenerator {
        .font("Helvetica")
        .text(egresadoData.ficha || "2556678", labelRightX + 30, rowY);
 
-    // --- Programa (negrita, centrado) ---
-    const programaY = rowY + 16;
+    // --- Programa (negrita, centrado, con altura dinámica) ---
+    const programaY = rowY + 18;
     doc.fillColor(BLACK)
-       .fontSize(9)
+       .fontSize(8.5)
        .font("Helvetica-Bold")
-       .text(egresadoData.programa || "ANÁLISIS Y DESARROLLO DE SOFTWARE", left, programaY, {
-         width: width - left - right,
-         align: "center"
+       .text(egresadoData.programa || "ANÁLISIS Y DESARROLLO DE SOFTWARE", left + 4, programaY, {
+         width: width - left - right - 8,
+         align: "center",
+         lineGap: 1
        });
 
+    // Calcular altura del texto del programa para espaciado dinámico
+    const programaHeight = doc.heightOfString(egresadoData.programa || "ANÁLISIS Y DESARROLLO DE SOFTWARE", {
+      width: width - left - right - 8,
+      lineGap: 1
+    });
+
     // --- Regional (verde) ---
-    const regionalY = programaY + 14;
+    const regionalY = programaY + programaHeight + 10;
     doc.fillColor(GREEN)
        .fontSize(8)
        .font("Helvetica-Bold")
@@ -207,17 +207,24 @@ class PDFGenerator {
        });
 
     // --- Centro de formación (verde, texto más pequeño) ---
-    const centroY = regionalY + 11;
+    const centroY = regionalY + 12;
     doc.fillColor(GREEN)
        .fontSize(7)
        .font("Helvetica-Bold")
        .text(egresadoData.centro || "Centro de Teleinformática y Producción Industrial", left + 6, centroY, {
          width: width - left - right - 12,
-         align: "center"
+         align: "center",
+         lineGap: 0
        });
 
+    // Calcular altura del centro para espaciado dinámico
+    const centroHeight = doc.heightOfString(egresadoData.centro || "Centro de Teleinformática y Producción Industrial", {
+      width: width - left - right - 12,
+      lineGap: 0
+    });
+
     // --- Fecha de certificación (negro, centrado, abajo) ---
-    const fechaY = centroY + 13;
+    const fechaY = centroY + centroHeight + 10;
     doc.fillColor(BLACK)
        .fontSize(7)
        .font("Helvetica")

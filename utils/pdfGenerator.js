@@ -1,6 +1,11 @@
 // pdfGenerator.js
 import PDFDocument from "pdfkit";
 import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 class PDFGenerator {
   /**
@@ -44,7 +49,9 @@ class PDFGenerator {
     const logoWidth = 50; // tamaño del logo
     const logoX = left;
     const logoY = top;
-    doc.image("./logosena.png", logoX, logoY, { width: logoWidth });
+    // Ruta absoluta al logo (desde utils/ subimos un nivel a la raíz)
+    const logoPath = path.join(__dirname, "..", "logosena.png");
+    doc.image(logoPath, logoX, logoY, { width: logoWidth });
 
     // Cuadro de fotografía (parte superior derecha), tamaño proporcional a la referencia
     const photoBoxW = 68;

@@ -40,18 +40,11 @@ class PDFGenerator {
     const top = 18; // Aumentado margen superior
 
     // --- HEADER: logo (izq) y cuadro fotografía (der) ---
-    // Logo
-    try {
-      // Cargar logo y dimensionarlo para que quede proporcional como en la referencia.
-      // Ajusta path si tu logosena.png está en otra carpeta.
-      const logoWidth = 50; // reducido para ahorrar espacio
-      const logoX = left;
-      const logoY = top;
-      doc.image("./logosena.png", logoX, logoY, { width: logoWidth });
-    } catch (e) {
-      // Si falla, dibujamos solo texto SENA en verde (fallback)
-      doc.fillColor(GREEN).fontSize(16).font("Helvetica-Bold").text("SENA", left, top);
-    }
+    // Logo SENA (siempre usar el logo de la raíz del proyecto)
+    const logoWidth = 50; // tamaño del logo
+    const logoX = left;
+    const logoY = top;
+    doc.image("./logosena.png", logoX, logoY, { width: logoWidth });
 
     // Cuadro de fotografía (parte superior derecha), tamaño proporcional a la referencia
     const photoBoxW = 68;
@@ -90,7 +83,7 @@ class PDFGenerator {
     // --- Línea verde (debajo del header, sin texto "EGRESADO") ---
     const lineY = photoBoxY + photoBoxH + 8; // posición justo debajo del header
     const lineX = left;
-    const lineWidth = width - left - right - (photoBoxW / 8); // un poco de espacio a la derecha
+    const lineWidth = width - left - right; // línea completa de margen a margen
     doc.rect(lineX, lineY, lineWidth, 1.5)
        .fillColor(GREEN)
        .fill();

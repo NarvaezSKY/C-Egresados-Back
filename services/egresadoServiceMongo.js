@@ -193,16 +193,7 @@ class MongoEgresadoService {
 
     const mappedEgresado = await this.mapFieldsOptimized(egresado);
     
-    // Verificar si ya existe un carnet válido
-    const canGenerate = await carnetService.canGenerateCarnet(cedula);
-    
-    if (!canGenerate.canGenerate) {
-      // Si ya existe un carnet válido, lanzar error con información
-      const existing = canGenerate.existingCarnet;
-      throw new Error(`Ya existe un carnet válido para esta cédula. Válido hasta: ${existing.fechaVencimiento.toLocaleDateString('es-ES')} (${existing.daysRemaining} días restantes)`);
-    }
-    
-    // Registrar nuevo carnet en MongoDB
+    // Registrar o actualizar carnet en MongoDB (ahora permite descargas ilimitadas)
     const carnetRecord = await carnetService.registerCarnet(cedula, mappedEgresado, metadata);
     
     // Generar QR con datos del carnet (incluye ficha para validación)

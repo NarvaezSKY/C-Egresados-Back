@@ -4,9 +4,64 @@ import recaptchaService from "../services/recaptchaService.js";
 import qrService from "../services/qrService.js";
 
 class EgresadoController {
+  constructor() {
+    // Rate limiting: IP -> [timestamps]
+    this.rateLimitMap = new Map();
+    this.RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hora en ms
+    this.MAX_REQUESTS_PER_HOUR = 10;
+    
+    // Limpiar rate limit cache cada hora
+    setInterval(() => this.cleanupRateLimitMap(), this.RATE_LIMIT_WINDOW);
+  }
+
+  // 🛡️ Verificar rate limit por IP
+  checkRateLimit = (ip) => {
+    const now = Date.now();
+    
+    if (!this.rateLimitMap.has(ip)) {
+      this.rateLimitMap.set(ip, [now]);
+      return { allowed: true, remaining: this.MAX_REQUESTS_PER_HOUR - 1 };
+    }
+    
+    const timestamps = this.rateLimitMap.get(ip);
+    // Filtrar requests dentro de la ventana de tiempo
+    const recentRequests = timestamps.filter(t => now - t < this.RATE_LIMIT_WINDOW);
+    
+    if (recentRequests.length >= this.MAX_REQUESTS_PER_HOUR) {
+      const oldestRequest = Math.min(...recentRequests);
+      const retryAfter = Math.ceil((oldestRequest + this.RATE_LIMIT_WINDOW - now) / 1000 / 60); // minutos
+      
+      return { 
+        allowed: false, 
+        remaining: 0,
+        retryAfter: retryAfter
+      };
+    }
+    
+    recentRequests.push(now);
+    this.rateLimitMap.set(ip, recentRequests);
+    
+    return { 
+      allowed: true, 
+      remaining: this.MAX_REQUESTS_PER_HOUR - recentRequests.length 
+    };
+  }
+
+  // 🧹 Limpiar mapa de rate limiting
+  cleanupRateLimitMap = () => {
+    const now = Date.now();
+    for (const [ip, timestamps] of this.rateLimitMap.entries()) {
+      const recentRequests = timestamps.filter(t => now - t < this.RATE_LIMIT_WINDOW);
+      if (recentRequests.length === 0) {
+        this.rateLimitMap.delete(ip);
+      } else {
+        this.rateLimitMap.set(ip, recentRequests);
+      }
+    }
+  }
 
   // 📌 Verificar egresado
-  async verify(req, res) {
+  verify = async (req, res) => {
     try {
       const { cedula } = req.body;
 
@@ -41,7 +96,7 @@ class EgresadoController {
   }
 
   // 📌 Generar carnet PDF (GET - sin reCAPTCHA, para compatibilidad)
-  async generateCarnet(req, res) {
+  generateCarnet = async (req, res) => {
     try {
       const { cedula } = req.params;
 
@@ -66,7 +121,7 @@ class EgresadoController {
   }
 
   // 📌 Generar carnet PDF con reCAPTCHA (POST - nueva ruta principal)
-  async generateCarnetWithCaptcha(req, res) {
+  generateCarnetWithCaptcha = async (req, res) => {
     try {
       const { cedula, recaptchaToken } = req.body;
 
@@ -75,6 +130,21 @@ class EgresadoController {
         return res.status(400).json({
           message: "Faltan campos requeridos",
           required: ["cedula", "recaptchaToken"]
+        });
+      }
+
+      // 🛡️ Verificar rate limit
+      const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+      const rateLimitResult = this.checkRateLimit(clientIp);
+      
+      // Agregar headers de rate limit
+      res.setHeader('X-RateLimit-Limit', this.MAX_REQUESTS_PER_HOUR);
+      res.setHeader('X-RateLimit-Remaining', rateLimitResult.remaining);
+      
+      if (!rateLimitResult.allowed) {
+        return res.status(429).json({
+          message: `Has alcanzado el límite de ${this.MAX_REQUESTS_PER_HOUR} descargas por hora. Por favor intenta nuevamente en ${rateLimitResult.retryAfter} minuto${rateLimitResult.retryAfter !== 1 ? 's' : ''}.`,
+          error: "Límite de descargas excedido. Inténtalo nuevamente en 1 hora."
         });
       }
 
@@ -128,20 +198,13 @@ class EgresadoController {
         });
       }
 
-      if (error.message.includes("Ya existe un carnet válido")) {
-        return res.status(409).json({
-          message: "Carnet ya generado",
-          error: error.message
-        });
-      }
-
       res.status(500).json({
         message: "Error generando carnet",
         error: error.message
       });
     }
   }  // 📌 Obtener todos los egresados (endpoint administrativo)
-  async getAll(req, res) {
+  getAll = async (req, res) => {
     try {
       const egresados = await egresadoServiceMongo.getAllEgresados();
       
@@ -161,7 +224,7 @@ class EgresadoController {
   }
 
   // 📌 Obtener estadísticas
-  async getStats(req, res) {
+  getStats = async (req, res) => {
     try {
       const stats = await egresadoServiceMongo.getStats();
       
@@ -180,7 +243,7 @@ class EgresadoController {
   }
 
   // 📌 Generar reporte de estadísticas en PDF
-  async generateStatsReport(req, res) {
+  generateStatsReport = async (req, res) => {
     try {
       const stats = await egresadoServiceMongo.getStats();
       
@@ -196,7 +259,7 @@ class EgresadoController {
   }
 
   // 📌 Verificar estado de encuesta para un egresado
-  async checkSurveyStatus(req, res) {
+  checkSurveyStatus = async (req, res) => {
     try {
       const { cedula } = req.params;
       
@@ -214,7 +277,7 @@ class EgresadoController {
   }
 
   // 📌 DEBUG: Ver cédulas de la encuesta
-  async debugSurveyCedulas(req, res) {
+  debugSurveyCedulas = async (req, res) => {
     try {
       const result = await egresadoServiceMongo.debugSurveyCedulas();
       
@@ -230,7 +293,7 @@ class EgresadoController {
   }
 
   // 📌 Recargar datos del Excel
-  async reloadData(req, res) {
+  reloadData = async (req, res) => {
     try {
       const result = await egresadoServiceMongo.reloadData();
       
@@ -246,7 +309,7 @@ class EgresadoController {
   }
 
   // 📌 Recargar datos de la encuesta
-  async reloadSurveyData(req, res) {
+  reloadSurveyData = async (req, res) => {
     try {
       const result = await egresadoServiceMongo.reloadSurveyData();
       
@@ -262,7 +325,7 @@ class EgresadoController {
   }
 
   // 📌 Validar carnet por código QR
-  async validateCarnet(req, res) {
+  validateCarnet = async (req, res) => {
     try {
       const { qrData } = req.params;
       
@@ -297,7 +360,7 @@ class EgresadoController {
   }
 
   // 📌 Verificar estado de carnet de un usuario
-  async checkCarnetStatus(req, res) {
+  checkCarnetStatus = async (req, res) => {
     try {
       const { cedula } = req.params;
       
@@ -315,7 +378,7 @@ class EgresadoController {
   }
 
   // 📌 Obtener estadísticas de carnets
-  async getCarnetStats(req, res) {
+  getCarnetStats = async (req, res) => {
     try {
       const stats = await egresadoServiceMongo.getCarnetStats();
       
@@ -331,7 +394,7 @@ class EgresadoController {
   }
 
   // 📌 Página web simple para verificación de carnets
-  async verifyPage(req, res) {
+  verifyPage = async (req, res) => {
     try {
       const { id } = req.query;
       

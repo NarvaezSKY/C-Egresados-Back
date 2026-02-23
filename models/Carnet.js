@@ -40,6 +40,14 @@ const carnetSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  fechaUltimaDescarga: {
+    type: Date,
+    default: Date.now
+  },
+  contadorDescargas: {
+    type: Number,
+    default: 1
+  },
   
   // 📊 Estado del carnet
   estado: {

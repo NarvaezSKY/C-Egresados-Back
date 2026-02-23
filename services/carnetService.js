@@ -6,55 +6,75 @@ class CarnetService {
     // Carnets válidos hasta el 31 de diciembre del año en que se generan
   }
 
-  // 📋 Verificar si puede generar nuevo carnet
-  async canGenerateCarnet(cedula) {
+  // 📋 Obtener o crear carnet (siempre permite descargar)
+  async getOrCreateCarnet(cedula) {
     try {
       // Buscar carnet válido existente
       const existingCarnet = await Carnet.findValidCarnet(cedula);
       
       if (existingCarnet) {
-        const daysRemaining = Math.ceil((existingCarnet.fechaVencimiento - new Date()) / (1000 * 60 * 60 * 24));
-        
         return {
-          canGenerate: false,
-          reason: 'Ya existe un carnet válido',
-          existingCarnet: {
-            id: existingCarnet.carnetId,
-            fechaVencimiento: existingCarnet.fechaVencimiento,
-            daysRemaining: daysRemaining
-          }
+          exists: true,
+          carnetId: existingCarnet.carnetId,
+          carnet: existingCarnet
         };
       }
       
+      // Si no existe, indicar que debe crearse
       return {
-        canGenerate: true,
-        reason: 'No existe carnet válido'
+        exists: false,
+        carnetId: null,
+        carnet: null
       };
     } catch (error) {
-      console.error('❌ Error verificando carnet:', error.message);
+      console.error('❌ Error obteniendo carnet:', error.message);
       return {
-        canGenerate: true,
-        reason: 'Error verificando - permitir generación'
+        exists: false,
+        carnetId: null,
+        carnet: null
       };
     }
   }
 
-  // 📋 Registrar nuevo carnet
+  // 📋 Registrar o actualizar carnet (permite descargas ilimitadas)
   async registerCarnet(cedula, egresadoData, metadata = {}) {
     try {
-      // Verificar si puede generar
-      const canGenerate = await this.canGenerateCarnet(cedula);
-      
-      if (!canGenerate.canGenerate) {
-        throw new Error(`No se puede generar carnet: ${canGenerate.reason}. Válido hasta: ${canGenerate.existingCarnet.fechaVencimiento.toLocaleDateString('es-ES')}`);
-      }
-
-      // Buscar si existe algún carnet previo (válido o inválido)
-      const existingCarnet = await Carnet.findOne({ cedula: cedula }).sort({ fechaGeneracion: -1 });
+      // Buscar carnet válido existente
+      const carnetInfo = await this.getOrCreateCarnet(cedula);
       
       const now = new Date();
       // Establecer fecha de vencimiento al 31 de diciembre del año actual
       const fechaVencimiento = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+
+      // Si existe un carnet válido, actualizar contador y fecha de última descarga
+      if (carnetInfo.exists) {
+        const existingCarnet = carnetInfo.carnet;
+        
+        existingCarnet.fechaUltimaDescarga = now;
+        existingCarnet.contadorDescargas = (existingCarnet.contadorDescargas || 0) + 1;
+        existingCarnet.metadata = {
+          userAgent: metadata.userAgent || existingCarnet.metadata?.userAgent || '',
+          ip: metadata.ip || existingCarnet.metadata?.ip || '',
+          recaptchaScore: metadata.recaptchaScore || 'N/A'
+        };
+
+        await existingCarnet.save();
+
+        console.log(`♻️ Carnet reutilizado - ${cedula} (Descarga #${existingCarnet.contadorDescargas})`);
+
+        return {
+          id: existingCarnet.carnetId,
+          cedula: cedula,
+          fechaGeneracion: existingCarnet.fechaGeneracion,
+          fechaVencimiento: existingCarnet.fechaVencimiento,
+          estado: 'valido',
+          reutilizado: true,
+          descargas: existingCarnet.contadorDescargas
+        };
+      }
+
+      // Buscar si existe algún carnet previo expirado/revocado para reutilizar su ID
+      const existingCarnet = await Carnet.findOne({ cedula: cedula }).sort({ fechaGeneracion: -1 });
 
       if (existingCarnet) {
         // 🔄 REUTILIZAR carnet existente - actualizarlo en lugar de crear uno nuevo

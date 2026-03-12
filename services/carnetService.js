@@ -1,6 +1,13 @@
 import Carnet from '../models/Carnet.js';
 import { v4 as uuidv4 } from 'uuid';
 
+const isProduction = process.env.NODE_ENV === 'production';
+const debugLog = (...args) => {
+  if (!isProduction) {
+    console.log(...args);
+  }
+};
+
 class CarnetService {
   constructor() {
     // Carnets válidos hasta el 31 de diciembre del año en que se generan
@@ -60,7 +67,7 @@ class CarnetService {
 
         await existingCarnet.save();
 
-        console.log(`♻️ Carnet reutilizado - ${cedula} (Descarga #${existingCarnet.contadorDescargas})`);
+        debugLog('♻️ Carnet reutilizado');
 
         return {
           id: existingCarnet.carnetId,
@@ -94,7 +101,7 @@ class CarnetService {
 
         await existingCarnet.save();
 
-        console.log(`🔄 Carnet reactivado - ${cedula}`);
+        debugLog('🔄 Carnet reactivado');
 
         return {
           id: existingCarnet.carnetId,
@@ -125,7 +132,7 @@ class CarnetService {
 
         await nuevoCarnet.save();
 
-        console.log(`✨ Carnet creado - ${cedula}`);
+        debugLog('✨ Carnet creado');
 
         return {
           id: carnetId,
@@ -270,7 +277,7 @@ class CarnetService {
       
       await carnet.revoke();
       
-      console.log(`🚫 Carnet revocado: ${carnetId.substring(0, 8)} - ${reason}`);
+      debugLog('🚫 Carnet revocado');
       
       return {
         success: true,

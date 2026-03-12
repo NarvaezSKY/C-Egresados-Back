@@ -3,6 +3,8 @@ import pdfGenerator from "../utils/pdfGenerator.js";
 import recaptchaService from "../services/recaptchaService.js";
 import qrService from "../services/qrService.js";
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 class EgresadoController {
   constructor() {
     // Rate limiting: IP -> [timestamps]
@@ -79,7 +81,7 @@ class EgresadoController {
       });
 
     } catch (error) {
-      console.error("Error en verify:", error);
+      console.error("Error en verify:", isProduction ? error.message : error);
       
       if (error.message.includes("Faltan campos")) {
         return res.status(400).json({
@@ -105,7 +107,7 @@ class EgresadoController {
       await pdfGenerator.generateCarnet(egresadoData, res);
 
     } catch (error) {
-      console.error("Error generando carnet:", error);
+      console.error("Error generando carnet:", isProduction ? error.message : error);
       
       if (error.message.includes("no encontrado")) {
         return res.status(404).json({ 
@@ -179,11 +181,8 @@ class EgresadoController {
       // Generar carnet PDF con QR
       await pdfGenerator.generateCarnet(egresadoData, res, qrBuffer);
 
-      // Log de seguridad
-      console.log(`✅ Carnet generado con reCAPTCHA - Cédula: ${cedula}, ID: ${egresadoData.carnetId?.substring(0, 8)}, Score: ${recaptchaResult.score || 'N/A'}`);
-
     } catch (error) {
-      console.error("Error generando carnet con reCAPTCHA:", error);
+      console.error("Error generando carnet con reCAPTCHA:", isProduction ? error.message : error);
       
       if (error.message.includes("no encontrado")) {
         return res.status(404).json({ 
@@ -215,7 +214,7 @@ class EgresadoController {
       });
 
     } catch (error) {
-      console.error("Error obteniendo egresados:", error);
+      console.error("Error obteniendo egresados:", isProduction ? error.message : error);
       res.status(500).json({
         message: "Error obteniendo egresados",
         error: error.message
@@ -234,7 +233,7 @@ class EgresadoController {
       });
 
     } catch (error) {
-      console.error("Error obteniendo estadísticas:", error);
+      console.error("Error obteniendo estadísticas:", isProduction ? error.message : error);
       res.status(500).json({
         message: "Error obteniendo estadísticas",
         error: error.message
@@ -250,7 +249,7 @@ class EgresadoController {
       await pdfGenerator.generateStatsReport(stats, res);
 
     } catch (error) {
-      console.error("Error generando reporte:", error);
+      console.error("Error generando reporte:", isProduction ? error.message : error);
       res.status(500).json({
         message: "Error generando reporte",
         error: error.message
@@ -268,7 +267,7 @@ class EgresadoController {
       res.json(result);
 
     } catch (error) {
-      console.error("Error verificando estado de encuesta:", error);
+      console.error("Error verificando estado de encuesta:", isProduction ? error.message : error);
       res.status(500).json({
         message: "Error verificando estado de encuesta",
         error: error.message
@@ -284,7 +283,7 @@ class EgresadoController {
       res.json(result);
 
     } catch (error) {
-      console.error("Error debuggeando cédulas:", error);
+      console.error("Error debuggeando cédulas:", isProduction ? error.message : error);
       res.status(500).json({
         message: "Error debuggeando cédulas",
         error: error.message
@@ -300,7 +299,7 @@ class EgresadoController {
       res.json(result);
 
     } catch (error) {
-      console.error("Error recargando datos:", error);
+      console.error("Error recargando datos:", isProduction ? error.message : error);
       res.status(500).json({
         message: "Error recargando datos",
         error: error.message
@@ -316,7 +315,7 @@ class EgresadoController {
       res.json(result);
 
     } catch (error) {
-      console.error("Error recargando datos de encuesta:", error);
+      console.error("Error recargando datos de encuesta:", isProduction ? error.message : error);
       res.status(500).json({
         message: "Error recargando datos de encuesta",
         error: error.message
@@ -351,7 +350,7 @@ class EgresadoController {
       res.status(statusCode).json(validation);
 
     } catch (error) {
-      console.error("Error validando carnet:", error);
+      console.error("Error validando carnet:", isProduction ? error.message : error);
       res.status(500).json({
         message: "Error interno validando carnet",
         error: error.message

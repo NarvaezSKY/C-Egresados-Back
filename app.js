@@ -22,7 +22,10 @@ const app = express();
 // 📌 Middlewares globales
 app.use(cors(CORS_OPTIONS));
 app.use(bodyParser.json());
-app.use(morgan("dev"));
+
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan("dev"));
+}
 
 // 📌 Rutas de la API
 app.use('/api', apiRoutes);
@@ -75,7 +78,7 @@ app.get('/', (req, res) => {
 
 // 📌 Middleware de manejo de errores
 app.use((err, req, res, next) => {
-  console.error('Error no manejado:', err);
+  console.error('Error no manejado:', process.env.NODE_ENV === 'production' ? err.message : err);
   res.status(500).json({
     message: 'Error interno del servidor',
     error: process.env.NODE_ENV === 'development' ? err.message : 'Error interno'

@@ -4,6 +4,13 @@ import surveyConnection from "../db/surveyConnection.js"; // Archivo local
 import carnetService from "./carnetService.js";  // Usar el nuevo servicio MongoDB
 import qrService from "./qrService.js";
 
+const isProduction = process.env.NODE_ENV === 'production';
+const debugLog = (...args) => {
+  if (!isProduction) {
+    console.log(...args);
+  }
+};
+
 class MongoEgresadoService {
   
   constructor() {
@@ -17,10 +24,10 @@ class MongoEgresadoService {
     
     // Si no está conectado, intentar conectar
     if (!status.isConnected) {
-      console.log('⚠️ MongoDB no conectado, intentando conectar...');
+      debugLog('⚠️ MongoDB no conectado, intentando conectar...');
       try {
         await mongoConnection.connect();
-        console.log('✅ Conexión a MongoDB establecida');
+        debugLog('✅ Conexión a MongoDB establecida');
       } catch (error) {
         console.error('❌ Error conectando a MongoDB:', error.message);
         throw new Error('MongoDB no está conectado. La generación de carnets requiere base de datos.');
@@ -69,7 +76,7 @@ class MongoEgresadoService {
 
   // 🎯 Formatear egresado de MongoDB para compatibilidad con carnet
   formatEgresadoForCarnet(mongoEgresado) {
-    console.log('🔍 DEBUG formatEgresadoForCarnet - Datos de entrada:', {
+    debugLog('🔍 DEBUG formatEgresadoForCarnet - Datos de entrada:', {
       centro: mongoEgresado.centro,
       regional: mongoEgresado.regional,
       numeroDocumento: mongoEgresado.numeroDocumento
@@ -145,7 +152,7 @@ class MongoEgresadoService {
   // 🗺️ Mapear campos optimizado (MongoDB)
   async mapFieldsOptimized(egresado) {
     // Debug: ver qué campos están llegando
-    console.log('🔍 DEBUG - Campos del egresado:', {
+    debugLog('🔍 DEBUG - Campos del egresado:', {
       centro_mongo: egresado.centro,
       centro_excel: egresado['Centro'],
       regional_mongo: egresado.regional,
@@ -163,7 +170,7 @@ class MongoEgresadoService {
       centro: egresado.centro || egresado['Centro'] || 'Centro de Teleinformática y Producción Industrial'
     };
 
-    console.log('✅ DEBUG - Campos mapeados:', {
+    debugLog('✅ DEBUG - Campos mapeados:', {
       centro: mapped.centro,
       regional: mapped.regional
     });
@@ -251,8 +258,8 @@ class MongoEgresadoService {
         programas[stat._id] = stat.count;
       });
 
-      // Obtener estadísticas de la encuesta (desde SharePoint)
-      const surveyStats = sharepointConnection.getStats();
+      // Obtener estadísticas de la encuesta (Google Sheets -> Mongo fallback)
+      const surveyStats = surveyConnection.getStats();
 
       return {
         totalEgresados: total,
@@ -281,7 +288,7 @@ class MongoEgresadoService {
 
   // 📊 Estado de encuesta
   async checkSurveyStatus(cedula) {
-    const hasAnswered = await sharepointConnection.hasAnsweredSurvey(cedula);
+    const hasAnswered = await surveyConnection.hasAnsweredSurvey(cedula);
     return {
       cedula: cedula,
       hasAnsweredSurvey: hasAnswered,
@@ -291,7 +298,7 @@ class MongoEgresadoService {
 
   // 📋 Recargar datos de encuesta
   async reloadSurveyData() {
-    const count = await sharepointConnection.reloadData();
+    const count = surveyConnection.reloadData();
     return {
       message: "Datos de encuesta recargados exitosamente",
       count: count
@@ -300,7 +307,7 @@ class MongoEgresadoService {
 
   // 🐛 Debug de encuesta
   async debugSurveyCedulas() {
-    return sharepointConnection.debugCedulas(20);
+    return surveyConnection.debugCedulas(20);
   }
 
   // ✅ Validar carnet por QR

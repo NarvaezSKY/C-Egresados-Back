@@ -63,7 +63,7 @@ class EgresadoService {
     }
 
     // 2. Verificar si ha contestado la encuesta
-    const hasAnsweredSurvey = surveyConnection.hasAnsweredSurvey(cedula);
+    const hasAnsweredSurvey = await surveyConnection.hasAnsweredSurvey(cedula);
     
     if (!hasAnsweredSurvey) {
       throw new Error("No has contestado a la encuesta de egresados. Puedes encontrar el enlace arriba, en los pasos de la generación del carnet.");
@@ -112,7 +112,7 @@ class EgresadoService {
 
   // 📌 Verificar si un egresado ha contestado la encuesta
   async checkSurveyStatus(cedula) {
-    const hasAnswered = surveyConnection.hasAnsweredSurvey(cedula);
+    const hasAnswered = await surveyConnection.hasAnsweredSurvey(cedula);
     return {
       cedula: cedula,
       hasAnsweredSurvey: hasAnswered,

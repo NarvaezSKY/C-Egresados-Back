@@ -1,5 +1,12 @@
 import axios from 'axios';
 
+const isProduction = process.env.NODE_ENV === 'production';
+const debugLog = (...args) => {
+  if (!isProduction) {
+    console.log(...args);
+  }
+};
+
 class RecaptchaService {
   
   // 📌 Verificar token de reCAPTCHA con Google
@@ -58,7 +65,7 @@ class RecaptchaService {
         };
       }
 
-      console.log('reCAPTCHA verification successful:', {
+      debugLog('reCAPTCHA verification successful:', {
         score: score || 'N/A (v2)',
         action: action || 'N/A',
         hostname
@@ -75,7 +82,7 @@ class RecaptchaService {
     } catch (error) {
       console.error('Error verificando reCAPTCHA:', error.message);
       
-      if (error.response) {
+      if (error.response && !isProduction) {
         console.error('Google reCAPTCHA response error:', error.response.data);
       }
 
@@ -108,7 +115,7 @@ class RecaptchaService {
       next();
 
     } catch (error) {
-      console.error('Error en middleware reCAPTCHA:', error);
+      console.error('Error en middleware reCAPTCHA:', isProduction ? error.message : error);
       res.status(500).json({
         message: 'Error interno en verificación de seguridad',
         error: error.message
